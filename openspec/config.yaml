@@ -2,31 +2,44 @@ schema: spec-driven
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  All artifacts and documentation (proposals, specs, design, tasks, ADRs, arc42
+  docs, code comments) are written in English.
+
+  We practice Test-Driven Development (TDD) with a strict red-green-refactor cycle:
+  write a failing test first, make it pass with the minimal necessary change, then
+  refactor. Apply general software engineering best practices throughout (small
+  focused changes, no premature abstraction, no dead code, meaningful naming,
+  favor simplicity over cleverness). Backend tests use pytest + FastAPI's
+  TestClient; frontend tests use Vitest (Vite-native test framework, fits Vue 3).
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Reference the corresponding GitHub issue number this change addresses
+      (e.g. "Closes #1") in the Why or Impact section.
+  design:
+    - Whenever a change involves an architecture decision, an ADR must be created
+      in docs/adr/ (Status, Context, Decision, Consequences) *before* the decision
+      is implemented, and its status must be "Accepted" before proceeding with
+      that decision.
+    - Whenever a change involves an architecture decision, the arc42 documentation
+      under docs/arc42/adoc/ must be reviewed and updated to reflect the decision
+      (e.g. Solution Strategy, Building Block View, Architecture Decisions, Risks,
+      as applicable).
+  tasks:
+    - Implementation tasks must follow TDD: write a failing (red) test first, then
+      the minimal code to make it pass (green), then refactor while keeping tests
+      green.
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
 # This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - Follow the TDD red-green-refactor cycle for every implementation task.
+      - If an architecture decision is made or changed during apply, create/update
+        the corresponding ADR in docs/adr/ (status "Accepted") and update
+        docs/arc42/adoc/ accordingly before considering the task done.

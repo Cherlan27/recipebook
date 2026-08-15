@@ -1,0 +1,53 @@
+ifndef::imagesdir[:imagesdir: ../images]
+
+[[section-glossary]]
+== Glossary
+
+ifdef::arc42help[]
+[role="arc42help"]
+****
+.Contents
+The most important domain and technical terms that your stakeholders use when discussing the system.
+
+You can also see the glossary as source for translations if you work in multi-language teams.
+
+.Motivation
+You should clearly define your terms, so that all stakeholders
+
+* have an identical understanding of these terms
+* do not use synonyms and homonyms
+
+
+.Form
+
+A table with columns <Term> and <Definition>.
+
+Potentially more columns in case you need translations.
+
+
+.Further Information
+
+See https://docs.arc42.org/section-12/[Glossary] in the arc42 documentation.
+
+****
+endif::arc42help[]
+
+[cols="e,2e" options="header"]
+|===
+|Term |Definition
+
+|Composition API
+|Style for structuring Vue 3 component logic (`<script setup>`), grouping code by feature rather than by option type; counterpart to the Options API.
+
+|Options API
+|Classic Vue style where component logic is split into fixed object fields (`data`, `methods`, `computed`, ...).
+
+|Pinia
+|Official state management library for Vue 3 (successor to Vuex); a central store for state shared across multiple components.
+
+|CORS (Cross-Origin Resource Sharing)
+|Browser mechanism that allows a web page to request resources from a different origin (domain/port); must be explicitly enabled server-side for the frontend dev origin.
+
+|Monorepo
+|A single repository that versions multiple independent projects together (here: `backend/`, `frontend/`).
+|===

@@ -1,0 +1,43 @@
+ifndef::imagesdir[:imagesdir: ../images]
+
+[[section-technical-risks]]
+== Risks and Technical Debts
+
+
+ifdef::arc42help[]
+[role="arc42help"]
+****
+.Contents
+A list of identified technical risks or technical debts, ordered by priority
+
+.Motivation
+“Risk management is project management for grown-ups” (Tim Lister, Atlantic Systems Guild.) 
+
+This should be your motto for systematic detection and evaluation of risks and technical debts in the architecture, which will be needed by management stakeholders (e.g. project managers, product owners) as part of the overall risk analysis and measurement planning.
+
+.Form
+List of risks and/or technical debts, probably including suggested measures to minimize, mitigate or avoid risks or reduce technical debts.
+
+
+.Further Information
+
+See https://docs.arc42.org/section-11/[Risks and Technical Debt] in the arc42 documentation.
+
+****
+endif::arc42help[]
+
+=== Async migrations with Alembic
+
+*Risk*: The database layer uses SQLAlchemy in async mode (`aiosqlite`). Once real models and schema migrations (e.g. with Alembic) are added, the setup is not trivial — Alembic needs either a sync-driver workaround or an async-capable `env.py`.
+
+*Impact*: Does not affect Issue #1 (no models yet), but will affect the next issue that introduces a first domain model (e.g. recipe).
+
+*Mitigation*: Plan the migration setup as its own effort in the first feature issue that adds a real model, not in the scaffold.
+
+=== `make` dependency on Windows
+
+*Risk*: Local development orchestration relies on `make`. On Windows, `make` is not available natively and must be installed separately (e.g. via Git Bash/MinGW).
+
+*Impact*: New developers on a fresh Windows machine without Git Bash/MinGW may not be able to use `make dev` directly.
+
+*Mitigation*: Document the requirement in the README; switch to a more cross-platform tool (`justfile`, `concurrently`) if this becomes a recurring problem.

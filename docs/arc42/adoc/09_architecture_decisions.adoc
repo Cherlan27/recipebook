@@ -1,0 +1,81 @@
+ifndef::imagesdir[:imagesdir: ../images]
+
+[[section-design-decisions]]
+== Architecture Decisions
+
+
+ifdef::arc42help[]
+[role="arc42help"]
+****
+.Contents
+Important, expensive, large scale or risky architecture decisions including rationales.
+With "decisions" we mean selecting one alternative based on given criteria.
+
+Please use your judgement to decide whether an architectural decision should be documented
+here in this central section or whether you better document it locally
+(e.g. within the white box template of one building block).
+
+Avoid redundancy. 
+Refer to section 4, where you already captured the most important decisions of your architecture.
+
+.Motivation
+Stakeholders of your system should be able to comprehend and retrace your decisions.
+
+.Form
+Various options:
+
+* ADR (https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions[Documenting Architecture Decisions]) for every important decision
+* List or table, ordered by importance and consequences or:
+* more detailed in form of separate sections per decision
+
+.Further Information
+
+See https://docs.arc42.org/section-9/[Architecture Decisions] in the arc42 documentation.
+There you will find links and examples about ADR.
+
+****
+endif::arc42help[]
+
+=== ADR-1: Async SQLAlchemy instead of sync
+
+*Context*: The backend needs database access to SQLite; FastAPI is an async framework.
+
+*Decision*: SQLAlchemy 2.0 in async mode with the `aiosqlite` driver.
+
+*Rationale*: Synchronous DB calls inside async request handlers block the event loop. The migration effort from sync to async SQLAlchemy is low on a new project (different connection URL, `await` on session calls); `TestClient` tests work unchanged.
+
+*Consequence*: Migrations (e.g. with Alembic) will later need a sync-driver workaround or an async-capable `env.py` — see <<section-technical-risks>>.
+
+=== ADR-2: Composition API instead of Options API
+
+*Context*: The frontend is set up with Vue 3 + TypeScript.
+
+*Decision*: Composition API with `<script setup>`.
+
+*Rationale*: Better TypeScript type inference, logic can be grouped by feature rather than by option type, and logic is reusable via composables.
+
+=== ADR-3: Pinia deferred
+
+*Context*: There is no state-management need in the scaffold yet (only a `/health` check).
+
+*Decision*: No Pinia setup in Issue #1.
+
+*Rationale*: Avoids an unused abstraction; Pinia will be introduced once a feature (most likely the recipe list) needs real cross-component state.
+
+=== ADR-4: Makefile for local development orchestration
+
+*Context*: Backend and frontend should be startable both individually and together, locally.
+
+*Decision*: Root `Makefile` with targets `backend`, `frontend`, `dev`.
+
+*Rationale*: `make` is already available on the primary development machine (Windows, via Git Bash); alternative cross-platform tools (`justfile`, `concurrently`) were considered but dropped since `make` was already installed.
+
+*Consequence*: Setup documentation should mention that `make` (e.g. via Git Bash/MinGW) is required.
+
+=== ADR-5: Vitest for frontend tests
+
+*Context*: The backend already has an automated testing approach (pytest + `TestClient`, ADR-1); the frontend test framework was still open.
+
+*Decision*: Use Vitest as the frontend test framework.
+
+*Rationale*: Vitest is Vite-native (shares Vite's config and transform pipeline), has first-class Vue 3 + TypeScript + Composition API support, and keeps frontend tests aligned with the project's TDD practice.

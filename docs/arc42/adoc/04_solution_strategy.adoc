@@ -1,0 +1,49 @@
+ifndef::imagesdir[:imagesdir: ../images]
+
+[[section-solution-strategy]]
+== Solution Strategy
+
+
+ifdef::arc42help[]
+[role="arc42help"]
+****
+.Contents
+A short summary and explanation of the fundamental decisions and solution strategies, that shape system architecture. It includes
+
+* technology decisions
+* decisions about the top-level decomposition of the system, e.g. usage of an architectural pattern or design pattern
+* decisions on how to achieve key quality goals
+* relevant organizational decisions, e.g. selecting a development process or delegating certain tasks to third parties.
+
+.Motivation
+These decisions form the cornerstones for your architecture. They are the foundation for many other detailed decisions or implementation rules.
+
+.Form
+Keep the explanations of such key decisions short.
+
+Motivate what was decided and why it was decided that way,
+based upon problem statement, quality goals and key constraints.
+Refer to details in the following sections.
+
+
+.Further Information
+
+See https://docs.arc42.org/section-4/[Solution Strategy] in the arc42 documentation.
+
+****
+endif::arc42help[]
+
+=== Backend Strategy
+
+* FastAPI with a layered structure (`app/api/routes`, `app/core`, `app/db`, `app/models`) — separates routing, configuration, database access, and domain models from the start, so follow-up issues (e.g. recipe CRUD) can slot in instead of requiring a restructure.
+* Database access via SQLAlchemy 2.0 in **async** mode (driver `aiosqlite`), since FastAPI itself is async — synchronous DB calls would block the event loop. The extra effort compared to sync SQLAlchemy is small on a greenfield project (see ADR-1 in <<section-design-decisions>>).
+* A real engine/session is set up already in the scaffold, rather than just touching a file, so later issues can add models/queries directly.
+
+=== Frontend Strategy
+
+* Vue 3 with TypeScript and the Composition API (`<script setup>`) instead of the Options API — better type inference, logic grouped by feature rather than by option type (see ADR-2).
+* No state management (Pinia) in the scaffold — introduced only once a feature needs real cross-component state, most likely the recipe list (see ADR-3).
+
+=== Development Tooling
+
+* Root `Makefile` with targets `backend`, `frontend`, and `dev` (starts both servers in parallel) as a single local entry point (see ADR-4).
