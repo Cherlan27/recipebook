@@ -29,9 +29,9 @@ rules:
       (e.g. Solution Strategy, Building Block View, Architecture Decisions, Risks,
       as applicable).
   tasks:
-    - Implementation tasks must follow TDD: write a failing (red) test first, then
-      the minimal code to make it pass (green), then refactor while keeping tests
-      green.
+    - "Implementation tasks must follow TDD: write a failing (red) test first,
+      then the minimal code to make it pass (green), then refactor while
+      keeping tests green."
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.

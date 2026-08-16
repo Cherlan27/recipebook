@@ -1,0 +1,13 @@
+# Backend (Python / uv)
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/data/*.db
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+
+# Editors / OS
+.DS_Store

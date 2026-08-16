@@ -35,7 +35,7 @@ endif::arc42help[]
 
 === Backend Strategy
 
-* FastAPI with a layered structure (`app/api/routes`, `app/core`, `app/db`, `app/models`) — separates routing, configuration, database access, and domain models from the start, so follow-up issues (e.g. recipe CRUD) can slot in instead of requiring a restructure.
+* FastAPI with a layered structure (`app/api/routes`, `app/core`, `app/db`, `app/models`) — separates routing, configuration, database access, and domain models from the start, so follow-up issues (e.g. recipe CRUD) can slot in instead of requiring a restructure (see ADR-6).
 * Database access via SQLAlchemy 2.0 in **async** mode (driver `aiosqlite`), since FastAPI itself is async — synchronous DB calls would block the event loop. The extra effort compared to sync SQLAlchemy is small on a greenfield project (see ADR-1 in <<section-design-decisions>>).
 * A real engine/session is set up already in the scaffold, rather than just touching a file, so later issues can add models/queries directly.
 

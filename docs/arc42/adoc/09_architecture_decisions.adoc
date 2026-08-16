@@ -79,3 +79,11 @@ endif::arc42help[]
 *Decision*: Use Vitest as the frontend test framework.
 
 *Rationale*: Vitest is Vite-native (shares Vite's config and transform pipeline), has first-class Vue 3 + TypeScript + Composition API support, and keeps frontend tests aligned with the project's TDD practice.
+
+=== ADR-6: Layered backend structure
+
+*Context*: Issue #1 only needs a `GET /health` endpoint, but is the first backend code in the project and shapes every follow-up issue.
+
+*Decision*: Structure the backend into `app/api/routes`, `app/core`, `app/db`, and `app/models` from the start, rather than a single `app/main.py`.
+
+*Rationale*: Follow-up issues (e.g. recipe CRUD) can slot into the existing layers instead of forcing a restructure of code that is not yet under test in its final shape.
