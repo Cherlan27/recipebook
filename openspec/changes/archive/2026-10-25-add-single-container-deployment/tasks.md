@@ -53,7 +53,7 @@
 
 ## 8. Verification on the Raspberry Pi
 
-- [ ] 8.1 Clone the repository on the Pi, create and `chown` the data directory, and run `docker compose up -d --build` on `linux/arm64`
-- [ ] 8.2 Open the application from another device in the home network via the Pi's IP address
-- [ ] 8.3 Reboot the Pi and confirm the container comes back and the data is intact
-- [ ] 8.4 Tick the acceptance criteria and Definition of Done on issue #2
+- [x] 8.1 Clone the repository on the Pi, create and `chown` the data directory, and run `docker compose up -d --build` on `linux/arm64`
+- [x] 8.2 Open the application from another device in the home network via the Pi's IP address
+- [x] 8.3 Reboot the Pi and confirm the container comes back and the data is intact
+- [x] 8.4 Tick the acceptance criteria and Definition of Done on issue #2

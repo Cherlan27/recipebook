@@ -105,6 +105,23 @@ image and recreating the container). It does **not** survive
 (e.g. an SD card dying on the Raspberry Pi). Surviving restarts is not a
 backup — there is currently no backup mechanism for this data.
 
+### Troubleshooting
+
+**Container does not start after a system update (`Unable to enable DNAT rule`).**
+If the kernel or Docker was upgraded (e.g. `pacman -Syu` on Arch Linux ARM)
+and the device was not rebooted, the kernel modules Docker needs for port
+forwarding may no longer be loadable, because the modules of the still-running
+kernel have been replaced. Starting the container then fails with
+`failed to set up container networking: ... Unable to enable DNAT rule`, and
+Docker does not retry it on the next boot. Containers using host networking are
+not affected, which makes this easy to miss. Reboot the device right after
+kernel or Docker upgrades; if the container is still down after the reboot,
+recreate it:
+
+```
+docker compose up -d --force-recreate
+```
+
 ## Documentation
 
 - Architecture: [docs/arc42/arc42-template.adoc](docs/arc42/arc42-template.adoc)
