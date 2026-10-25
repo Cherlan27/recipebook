@@ -41,3 +41,35 @@ endif::arc42help[]
 *Impact*: New developers on a fresh Windows machine without Git Bash/MinGW may not be able to use `make dev` directly.
 
 *Mitigation*: Document the requirement in the README; switch to a more cross-platform tool (`justfile`, `concurrently`) if this becomes a recurring problem.
+
+=== SQLite on network-attached storage
+
+*Risk*: The deployment's data directory is a bind mount from the host filesystem (see ADR-7). If it is pointed at an NFS or SMB share instead of local storage, SQLite's file locking is unreliable and can lead to database corruption.
+
+*Impact*: Affects any deployment where the data directory is placed on network storage, e.g. a NAS share mounted into the host filesystem.
+
+*Mitigation*: Documented explicitly in the deployment instructions (README) that the data directory must be on local storage.
+
+=== No backup of deployment data
+
+*Risk*: The bind-mounted data directory survives container restarts and image rebuilds, but this is not a backup. Volume removal (`docker compose down -v`), accidental deletion, or storage failure (e.g. SD card death on the Raspberry Pi) still causes data loss.
+
+*Impact*: All recipe data on the deployed instance.
+
+*Mitigation*: Stated explicitly in the deployment instructions so the persistence guarantee is not overread. Backup remains an unaddressed concern, to be picked up as its own effort if needed.
+
+=== No authentication on the home-network deployment
+
+*Risk*: The single-container deployment (ADR-7) has no authentication or TLS. Anyone with access to the home network can read and write all data.
+
+*Impact*: Acceptable for the home-network scope this deployment targets; would not be acceptable if the instance became reachable beyond the home network.
+
+*Mitigation*: Scope is deliberately limited to the home network. Public/VPS exposure with authentication and TLS is tracked as a separate issue (#5) rather than being retrofitted here.
+
+=== Host/container UID mismatch on first deploy
+
+*Risk*: The container runs as a non-root user with a configurable UID/GID, defaulting to `1000:1000` (the default account on Raspberry Pi OS, see ADR-7). If the target device's account uses a different UID/GID, the container cannot write to the bind-mounted data directory until the mismatch is resolved.
+
+*Impact*: Affects first-time deployment on any device whose primary user account does not use UID/GID `1000:1000`.
+
+*Mitigation*: The startup failure is diagnosable (it names the offending path, see the `deployment` capability spec). The deployment instructions document the one-time `chown` of the data directory and how to override the UID/GID in `docker-compose.yml`.

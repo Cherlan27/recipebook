@@ -93,16 +93,32 @@ Please copy the structure from level 1 for each selected element.
 ****
 endif::arc42help[]
 
-==== _<Infrastructure Element 1>_
+==== Home network deployment (Raspberry Pi)
 
-_<diagram + explanation>_
+[source]
+----
+Home network
+└── Raspberry Pi (linux/arm64)
+    └── Docker container (published port :8090)
+        ├── Uvicorn (0.0.0.0:8000, internal)
+        │   ├── GET  /*      → static files (built frontend, dist/)
+        │   └── GET  /api/*  → FastAPI routers (e.g. /health)
+        └── bind mount ./data → /app/data
+                                  └── app.db (SQLite, local storage only)
+----
 
-==== _<Infrastructure Element 2>_
+Motivation::
 
-_<diagram + explanation>_
+Issue #2 (PBI-02): the application must run on hardware the owner controls, reachable from other devices in the home network, without depending on an external cloud. See ADR-7 for the single-container decision and the alternatives considered.
 
-...
+Quality and/or Performance Features::
 
-==== _<Infrastructure Element n>_
+* Frontend and API share one origin and one published port — no CORS configuration is needed in this environment (CORS remains a development-only concern, see Infrastructure Level 1).
+* Application data (the SQLite file) is bind-mounted from the host, so it survives container restarts and image rebuilds. The bind mount must be on local storage — SQLite's file locking is unreliable on NFS/SMB shares.
+* The container runs as a non-root user (UID/GID configurable, defaulting to `1000:1000`, the default account on Raspberry Pi OS).
+* Restart-safe is not the same as backed up: the data survives `docker restart`/`docker compose up -d --build`, but not volume removal or storage failure.
+* Scope is the home network only; there is no TLS and no authentication (see PBI-05, #5, for the VPS/public-exposure case).
 
-_<diagram + explanation>_
+Mapping of Building Blocks to Infrastructure::
+
+The image is built directly on the target device from source (`git pull` + `docker compose up -d --build`); no image is pushed to a registry. A multi-stage `Dockerfile` builds the frontend (`frontend/dist/`) in a Node stage and copies it into the Python runtime image, where FastAPI (`app/main.py`) serves it as static files alongside the API, mounted after the routers so `/health` and other API routes keep precedence. `docker-compose.yml` declares the published port, the bind mount, the `RECIPEBOOK_DATABASE_PATH` environment variable pointing into the mounted volume, and a `HEALTHCHECK`/Compose healthcheck against `GET /health`.

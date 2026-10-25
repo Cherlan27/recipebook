@@ -9,5 +9,8 @@ backend/data/*.db
 frontend/node_modules/
 frontend/dist/
 
+# Deployment (docker-compose bind mount)
+/data/
+
 # Editors / OS
 .DS_Store

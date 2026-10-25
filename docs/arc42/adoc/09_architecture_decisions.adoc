@@ -87,3 +87,13 @@ endif::arc42help[]
 *Decision*: Structure the backend into `app/api/routes`, `app/core`, `app/db`, and `app/models` from the start, rather than a single `app/main.py`.
 
 *Rationale*: Follow-up issues (e.g. recipe CRUD) can slot into the existing layers instead of forcing a restructure of code that is not yet under test in its final shape.
+
+=== ADR-7: Single-container deployment with the backend serving the frontend
+
+*Context*: Issue #2 requires the application to run on hardware the owner controls (a Raspberry Pi in the home network), independent of an external cloud. Moving from local development to a deployed environment forces a decision that development never had to make: the frontend is a static build, and something has to serve it.
+
+*Decision*: Deploy as a single container. A multi-stage build compiles the frontend and copies it into the Python runtime image, where the backend serves it as static files alongside the API on one published port. The image is built on the target device from source; application data lives in a bind-mounted host directory; the container runs as a non-root user.
+
+*Rationale*: Same-origin delivery removes CORS as a production concern entirely — the alternative (two containers, CORS in production) would need the concrete home-network address in `cors_allowed_origins`, which is unknown at build time, changes with DHCP, and fails silently when wrong. A reverse-proxy split was considered and rejected as unneeded separation, since frontend and backend live in one repository and ship together.
+
+*Consequence*: Frontend-only changes require rebuilding the whole image. CORS becomes development-only configuration. Full decision record at `docs/adr/0007-single-container-deployment.md`.

@@ -1,0 +1,25 @@
+# Version control
+.git/
+.gitignore
+
+# Backend (Python / uv)
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/data/
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
+
+# OpenSpec / docs / project tooling (not needed inside the image)
+openspec/
+docs/
+.claude/
+README.md

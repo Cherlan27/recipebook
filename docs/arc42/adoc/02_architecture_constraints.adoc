@@ -39,4 +39,7 @@ endif::arc42help[]
 | Database | SQLite as a file under `backend/data/app.db` (mandated by Issue #1)
 | Backend dependency management | `uv` with `pyproject.toml` (mandated by Issue #1)
 | Frontend dev server port | `5173` (Vite default); must be listed as an allowed origin in the backend's CORS configuration
+| Deployment target | Raspberry Pi (`linux/arm64`) in the home network, plus the development machine (`linux/amd64`) for local verification before deploying (mandated by Issue #2, see ADR-7)
+| Deployment tooling | Docker and Docker Compose must be available on the target device; no registry or external CI is used, the image is built on-device from source
+| Deployment data storage | The bind-mounted data directory must be on local storage; SQLite's file locking is unreliable on NFS/SMB shares
 |===
