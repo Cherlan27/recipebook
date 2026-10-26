@@ -1,7 +1,11 @@
+import logging
+import os
 import sqlite3
 from pathlib import Path
 
 import pytest
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 
 from alembic import command
 from alembic.config import Config
@@ -12,6 +16,7 @@ from app.db.migrate import run_migrations
 FIXTURES = Path(__file__).parent / "fixtures"
 OK_SCRIPTS = FIXTURES / "migrations_ok"
 FAILING_SCRIPTS = FIXTURES / "migrations_failing"
+LOGGER_NAME = "uvicorn.error"
 
 
 def current_revision(database_path: Path) -> str | None:
@@ -156,3 +161,96 @@ def test_failing_migration_raises_diagnosable_error(tmp_path):
     assert str(database_path) in message
     assert "boom from fixture revision r2" in message
     assert isinstance(exc_info.value.__cause__, Exception)
+
+
+class PartialCopy:
+    """Stands in for shutil.copy2: writes part of the file, then fails like a full disk."""
+
+    def __call__(self, source, destination, **kwargs):
+        data = Path(source).read_bytes()
+        Path(destination).write_bytes(data[: len(data) // 2])
+        raise OSError("No space left on device")
+
+
+def test_interrupted_backup_copy_is_not_mistaken_for_a_backup_on_the_next_start(tmp_path, monkeypatch):
+    database_path = tmp_path / "app.db"
+    upgrade_to(database_path, OK_SCRIPTS, "r1")
+    content_before = database_path.read_bytes()
+    monkeypatch.setattr("app.db.migrate.shutil.copy2", PartialCopy())
+
+    with pytest.raises(RuntimeError):
+        run_migrations(database_path, script_location=OK_SCRIPTS)
+
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["app.db"]
+    monkeypatch.undo()
+
+    run_migrations(database_path, script_location=OK_SCRIPTS)
+
+    assert (tmp_path / "app.db.bak-r1").read_bytes() == content_before
+    assert current_revision(database_path) == "r2"
+
+
+def test_backup_copy_is_flushed_to_disk_before_it_gets_its_final_name(tmp_path, monkeypatch):
+    database_path = tmp_path / "app.db"
+    upgrade_to(database_path, OK_SCRIPTS, "r1")
+    fsynced: list[int] = []
+    real_fsync = os.fsync
+    monkeypatch.setattr("app.db.migrate.os.fsync", lambda fd: (fsynced.append(fd), real_fsync(fd))[1])
+
+    run_migrations(database_path, script_location=OK_SCRIPTS)
+
+    assert fsynced
+
+
+def test_migration_progress_and_backup_are_logged(tmp_path, caplog):
+    database_path = tmp_path / "app.db"
+    upgrade_to(database_path, OK_SCRIPTS, "r1")
+
+    with caplog.at_level(logging.INFO, logger=LOGGER_NAME):
+        run_migrations(database_path, script_location=OK_SCRIPTS)
+
+    messages = [record.getMessage() for record in caplog.records if record.name == LOGGER_NAME]
+    assert any("r1" in message and "r2" in message for message in messages)
+    assert any("written" in message and str(tmp_path / "app.db.bak-r1") in message for message in messages)
+
+
+def test_skipped_backup_copy_is_logged_as_warning_naming_the_existing_copy(tmp_path, caplog):
+    database_path = tmp_path / "app.db"
+    upgrade_to(database_path, OK_SCRIPTS, "r1")
+    backup = tmp_path / "app.db.bak-r1"
+    backup.write_bytes(b"older good copy")
+
+    with caplog.at_level(logging.INFO, logger=LOGGER_NAME):
+        run_migrations(database_path, script_location=OK_SCRIPTS)
+
+    warnings = [
+        record for record in caplog.records if record.name == LOGGER_NAME and record.levelno == logging.WARNING
+    ]
+    assert len(warnings) == 1
+    assert str(backup) in warnings[0].getMessage()
+
+
+def test_migration_connection_has_foreign_keys_off_even_if_a_global_listener_enables_them(tmp_path):
+    def enable_foreign_keys(dbapi_connection, _record):
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
+    event.listen(Engine, "connect", enable_foreign_keys)
+    try:
+        database_path = tmp_path / "app.db"
+        run_migrations(database_path, script_location=FIXTURES / "migrations_fk_probe")
+    finally:
+        event.remove(Engine, "connect", enable_foreign_keys)
+
+    with sqlite3.connect(database_path) as connection:
+        assert connection.execute("SELECT enabled FROM fk_state").fetchall() == [(0,)]
+
+
+def test_migration_leaving_orphaned_rows_aborts_startup(tmp_path):
+    database_path = tmp_path / "app.db"
+
+    with pytest.raises(RuntimeError) as exc_info:
+        run_migrations(database_path, script_location=FIXTURES / "migrations_orphan")
+
+    message = str(exc_info.value)
+    assert "Database migration failed" in message
+    assert "children" in message

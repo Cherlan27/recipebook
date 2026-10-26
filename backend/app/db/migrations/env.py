@@ -19,11 +19,14 @@ target_metadata = Base.metadata
 
 def run_migrations_online() -> None:
     url = config.get_main_option("sqlalchemy.url") or f"sqlite:///{settings.database_path}"
-    # Foreign-key enforcement stays off (SQLite's default) on this connection on purpose:
-    # batch migrations drop and recreate tables, and with enforcement on, dropping
-    # `recipes` would cascade-delete every row in `recipe_tags`. See design D7.
     engine = create_engine(url, poolclass=pool.NullPool)
     with engine.connect() as connection:
+        # Foreign-key enforcement is off on this connection on purpose, and explicitly so
+        # rather than by SQLite's default: batch migrations drop and recreate tables, and
+        # with enforcement on, dropping `recipes` would cascade-delete every row in
+        # `recipe_tags`. See design D7. run_migrations() checks the result afterwards.
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.commit()  # end the implicit transaction so Alembic's own one is the real one
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
