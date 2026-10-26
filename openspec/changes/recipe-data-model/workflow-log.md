@@ -12,3 +12,5 @@
 - 2026-10-26 gate (apply): human chose to run task 6.3 locally; coordinator started Docker Desktop (daemon was down). Phase 2b: sonnet worker for task 6.3 only.
 - 2026-10-26 phase 2b (claude/sonnet, ctx_c8b534e784b1) finished: task 6.3 verified (bak-base created, /health 200, no second backup after recreate), commit 11ecfed. Accepted: no open tasks, `make check` passes. Phase 2 complete.
 - 2026-10-26 phase 3 review analysis started: claude/opus
+- 2026-10-26 phase 3 review analysis (claude/opus, ctx_c5f9212e41cd) finished: succeeded, round 1 in review.md (commit 04eb25d): 0 CRITICAL, 2 MAJOR, 6 MINOR, 3 nits. Accepted (review.md has a new round and is committed).
+- 2026-10-26 gate 2 reached: waiting for human decisions per finding.
