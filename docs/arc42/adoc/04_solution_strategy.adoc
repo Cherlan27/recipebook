@@ -47,3 +47,10 @@ endif::arc42help[]
 === Development Tooling
 
 * Root `Makefile` with targets `backend`, `frontend`, and `dev` (starts both servers in parallel) as a single local entry point (see ADR-4).
+
+=== Deployment Strategy
+
+* Single container: a multi-stage build compiles the frontend and copies it into the Python runtime image, where the backend serves it as static files alongside the API on one published port — same origin, no CORS needed in this environment (see ADR-7).
+* Built directly on the target device from source, not pushed to a registry, keeping the project independent of external services (see ADR-7).
+* Application data (the SQLite file) lives in a bind-mounted host directory so it survives container restarts and rebuilds; the container runs as a non-root user.
+* Scope is the home network; TLS and authentication for public/VPS exposure are deliberately deferred to a separate issue (#5).
