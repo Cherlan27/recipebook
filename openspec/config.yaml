@@ -28,10 +28,19 @@ rules:
       under docs/arc42/adoc/ must be reviewed and updated to reflect the decision
       (e.g. Solution Strategy, Building Block View, Architecture Decisions, Risks,
       as applicable).
+  specs:
+    - Every scenario must be verifiable by an automated test (pytest or
+      Vitest), or explicitly name the manual check that verifies it (e.g. a
+      deployment check on the Raspberry Pi).
   tasks:
     - "Implementation tasks must follow TDD: write a failing (red) test first,
       then the minimal code to make it pass (green), then refactor while
       keeping tests green."
+    - Every scenario in the delta specs has a task that writes its test first;
+      the task names the scenario it covers.
+    - Group tasks so that each numbered group can be committed on its own.
+    - The last group is "Verification" and contains a task that runs
+      `make check`, plus any manual checks the specs name.
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
@@ -43,3 +52,14 @@ operations:
       - If an architecture decision is made or changed during apply, create/update
         the corresponding ADR in docs/adr/ (status "Accepted") and update
         docs/arc42/adoc/ accordingly before considering the task done.
+      - Tick a task only after the test or command that proves it has passed in
+        this session; never tick a task based on an assumption.
+      - "Commit after each completed task group with a Conventional Commits
+        message (feat:, fix:, test:, docs:, chore:)."
+      - Apply is finished only when `make check` passes.
+  archive:
+    guidance:
+      - Archive on the change branch, before the pull request is merged.
+      - 'If the change has a review.md, every finding with "Decision: fix" must
+        have "Status: fixed"; otherwise stop and report the open findings
+        instead of archiving.'
