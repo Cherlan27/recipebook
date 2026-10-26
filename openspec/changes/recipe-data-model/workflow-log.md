@@ -20,3 +20,5 @@
 - 2026-10-26 phase 4b started: claude/sonnet, fix flaky timestamp test only. Round 2 of phase 3 follows (required because MAJOR findings R1/R2 were fixed; last allowed round).
 - 2026-10-26 phase 4b (claude/sonnet, ctx_31520639420c) finished: succeeded, commit ef3c90e (flake reproduced 17/3000, test made deterministic). Accepted: coordinator `make check` passes.
 - 2026-10-26 phase 3 round 2 started: claude/opus (last allowed round)
+- 2026-10-26 phase 3 round 2 (claude/opus, ctx_4077d99d6648) finished: succeeded, commit 25445af: 0 CRITICAL, 0 MAJOR, 2 MINOR (R9, R10), 4 nits (N4-N7). Round-1 fixes all verified by probes. Accepted.
+- 2026-10-26 gate 2 (round 2) reached: waiting for human decisions on R9, R10, N4-N7. No further review round allowed.
