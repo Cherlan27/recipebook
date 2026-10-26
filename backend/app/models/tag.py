@@ -1,3 +1,4 @@
+import unicodedata
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, Text
@@ -18,6 +19,7 @@ class Tag(Base):
     name: Mapped[str] = mapped_column(Text)
     # Case-folded name. SQLite's NOCASE and lower() only fold ASCII, so uniqueness
     # regardless of case (including umlauts) is enforced on this column instead.
+    # casefold() deliberately maps "ß" to "ss", so "Maße" and "Masse" are the same tag.
     name_key: Mapped[str] = mapped_column(Text, unique=True)
 
     recipes: Mapped[list["Recipe"]] = relationship(
@@ -26,7 +28,8 @@ class Tag(Base):
 
     @validates("name")
     def _normalize_name(self, _key: str, value: str) -> str:
-        name = value.strip()
+        # NFC first: macOS input and copy-paste produce decomposed umlauts that look identical.
+        name = unicodedata.normalize("NFC", value).strip()
         if not name:
             raise ValueError("Tag name must not be empty")
         self.name_key = name.casefold()

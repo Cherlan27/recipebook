@@ -1,3 +1,6 @@
+import unicodedata
+from datetime import UTC, datetime
+
 import pytest
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
@@ -159,10 +162,12 @@ async def test_undefined_kid_friendly_value_is_rejected(db_session):
 
 async def test_timestamps_are_set_on_creation(db_session):
     recipe = Recipe(nr=1, name="Fresh")
+    before = datetime.now(UTC).replace(tzinfo=None)
     db_session.add(recipe)
     await db_session.commit()
+    after = datetime.now(UTC).replace(tzinfo=None)
 
-    assert recipe.created_at is not None
+    assert before <= recipe.created_at <= after
     assert recipe.updated_at == recipe.created_at
 
 
@@ -188,7 +193,17 @@ async def test_tag_name_is_trimmed(db_session):
 
 @pytest.mark.parametrize(
     ("stored", "duplicate"),
-    [("Pasta", "pasta"), ("Pasta", " PASTA "), ("Österreichisch", "österreichisch")],
+    [
+        ("Pasta", "pasta"),
+        ("Pasta", " PASTA "),
+        ("Österreichisch", "österreichisch"),
+        # The same visible text in different Unicode forms (macOS input, copy-paste from PDFs).
+        (unicodedata.normalize("NFC", "Österreichisch"), unicodedata.normalize("NFD", "Österreichisch")),
+        (unicodedata.normalize("NFD", "Österreichisch"), unicodedata.normalize("NFC", "österreichisch")),
+        # casefold() deliberately treats ß as ss.
+        ("Maße", "Masse"),
+        ("Masse", "MAßE"),
+    ],
 )
 async def test_tag_names_are_unique_regardless_of_case(db_session, stored, duplicate):
     db_session.add(Tag(name=stored))
@@ -199,7 +214,14 @@ async def test_tag_names_are_unique_regardless_of_case(db_session, stored, dupli
         await db_session.commit()
     await db_session.rollback()
 
-    assert (await db_session.scalars(select(Tag.name))).all() == [stored]
+    assert (await db_session.scalars(select(Tag.name))).all() == [unicodedata.normalize("NFC", stored)]
+
+
+def test_tag_name_is_stored_in_composed_unicode_form():
+    tag = Tag(name=unicodedata.normalize("NFD", " Österreichisch "))
+
+    assert tag.name == "Österreichisch"
+    assert unicodedata.is_normalized("NFC", tag.name)
 
 
 @pytest.mark.parametrize("name", ["", "   "])
