@@ -26,3 +26,5 @@
 - 2026-10-26 phase 4 (round 2 fixes) started: claude/sonnet
 - 2026-10-26 phase 4 round 2 fixes (claude/sonnet, ctx_00e670183c31) finished: succeeded, 4 commits (d4eac53..55861e9); R9, R10 Status: fixed. Accepted: coordinator ran `make check` 3x, all pass (59 tests).
 - 2026-10-26 phase 5 archive & PR started: claude/sonnet
+- 2026-10-26 phase 5 archive & PR (claude/sonnet, ctx_f30b5579bd4d) finished: succeeded, commit 1c08a8f, PR #11 (CI check green). Accepted: change under archive/, coordinator `make check` passes.
+- 2026-10-26 gate 3 reached: waiting for human approval to merge and deploy. Human asked for a workflow retro (/adjust-workflow 3) in the meantime.
