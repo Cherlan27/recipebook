@@ -29,3 +29,11 @@ MAJOR data-safety problems; round 2 found no MAJOR.
 | A11 | Lower `--effort` for sonnet apply/fix workers | `orchestrate-issue` | generic | proposed, not applied: no evidence yet that quality holds; try on one issue and compare |
 | A12 | Drop the coordinator's own `make check` after each phase | `orchestrate-issue` | generic | rejected: it caught the flaky test in phase 4 |
 | A13 | Fix the proposal rule in `config.yaml`: `"Closes #1"` hid the rest of the line as a YAML comment, so the rule reached agents cut off. Quote such entries | `openspec/config.yaml`, `CONTRIBUTING.md` | generic | applied |
+
+## 2026-10-26 · Issue #3 (follow-up) · tracks
+
+| # | Change | File | Scope | Status |
+|---|---|---|---|---|
+| B1 | Tracks: Full, Small (3 workers, propose+apply in one session, one review round, Gate 2 only for MAJOR+), Trivial (no OpenSpec change, no review) | `CONTRIBUTING.md`, `orchestrate-issue`, `CLAUDE.md` | generic | applied; untried, review after the first few issues |
+| B2 | Branch precondition accepts the `<user>/` prefix Orca adds | `orchestrate-issue` | generic | applied |
+| B3 | Local model only on the Small track, with propose and apply split | `CONTRIBUTING.md`, `orchestrate-issue` | generic | applied |
