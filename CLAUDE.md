@@ -14,6 +14,7 @@ Run from the repo root (`Makefile` orchestrates both sides):
 make backend   # cd backend && uv run uvicorn app.main:app --reload   (http://localhost:8000)
 make frontend  # cd frontend && npm run dev                           (http://localhost:5173)
 make dev       # both, in parallel
+make check     # backend tests, frontend tests, type-checked build, openspec validate --strict (also run in CI)
 ```
 
 Backend tests:
@@ -54,8 +55,24 @@ Routes are added to `app/main.py` via `app.include_router(...)`; new endpoint mo
 - Test-Driven Development: write a failing test first, minimal code to pass, then refactor. Backend tests use `pytest` + FastAPI's `TestClient`; frontend tests use Vitest.
 - Architecture decisions require an ADR in `docs/adr/` (Status/Context/Decision/Consequences, status "Accepted") *before* the decision is implemented, and the corresponding `docs/arc42/adoc/` sections must be updated to match.
 
+## Workflow
+
+The full workflow is in `CONTRIBUTING.md`. The rules agents most often need:
+
+- One issue = one OpenSpec change = one worktree and branch (`issue-<number>-<short-name>`) = one PR with `Closes #<issue>`.
+- Do not develop in the main checkout; it stays on `main`. Work happens in a per-issue worktree branched from `origin/main`.
+- Each phase is a separate agent session with a fixed model: propose `opus`, apply `sonnet` (small changes: `opencode` with `ollama/qwen3.8:27b`), review analysis `opus`, review fixes `sonnet`, archive & PR `sonnet`. A `sonnet` coordinator drives the phases with `/orchestrate-issue` and stops for a human after propose, after review analysis, and before merge/deploy. Do only the phase you were started for.
+- After an issue is shipped, `/adjust-workflow <issue>` runs a retrospective and records approved workflow changes in `docs/workflow-retros.md`.
+- A phase is done only when `make check` passes; tick a task only after its test or command passed in your session.
+- Review analysis uses `/review-change`, writes findings to `openspec/changes/<change>/review.md`, and changes no code; review fixes implement only the findings a human selected.
+- A fresh worktree needs `uv sync --directory backend && npm ci --prefix frontend` before tests or dev servers run.
+- Run `/opsx:archive` on the branch *before* merging, so `main` never holds a finished-but-unarchived change.
+- Dev servers bind fixed ports (`8000`, `5173`) shared across worktrees — do not start them if another worktree already runs them (`orca ports --json`).
+- Never edit the generated OpenSpec skills/commands in `.claude/` or `.opencode/` (they are overwritten by `openspec update`); put project rules into `openspec/config.yaml`.
+
 ## Documentation
 
+- Contribution workflow: `CONTRIBUTING.md`
 - Architecture (arc42): `docs/arc42/adoc/` (source files) — see especially `04_solution_strategy.adoc`, `05_building_block_view.adoc`, `09_architecture_decisions.adoc`
 - Architecture Decision Records: `docs/adr/`
 - This project uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for spec-driven change planning: active work lives under `openspec/changes/`, completed changes are archived under `openspec/changes/archive/`, and current capability specs live under `openspec/specs/`.

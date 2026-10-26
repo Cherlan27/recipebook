@@ -124,5 +124,6 @@ docker compose up -d --force-recreate
 
 ## Documentation
 
+- Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Architecture: [docs/arc42/arc42-template.adoc](docs/arc42/arc42-template.adoc)
 - Architecture Decision Records: [docs/adr](docs/adr)
