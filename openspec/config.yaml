@@ -13,13 +13,21 @@ context: |
   favor simplicity over cleverness). Backend tests use pytest + FastAPI's
   TestClient; frontend tests use Vitest (Vite-native test framework, fits Vue 3).
 
+  Style: write simple technical English with short sentences and no filler.
+  Keep artifacts short; every sentence must carry a decision, a requirement, or
+  a fact someone needs later. Agent reports are at most 5 lines.
+
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
 rules:
   proposal:
-    - Reference the corresponding GitHub issue number this change addresses
-      (e.g. "Closes #1") in the Why or Impact section.
+    - 'Reference the corresponding GitHub issue number this change addresses
+      (e.g. "Closes #1") in the Why or Impact section. Keep the proposal under
+      one page.'
   design:
+    - "Keep design.md short: one entry per real decision (choice, reason,
+      rejected alternative, 5 lines at most). Do not restate the specs or the
+      issue, and do not describe code that follows from the specs."
     - Whenever a change involves an architecture decision, an ADR must be created
       in docs/adr/ (Status, Context, Decision, Consequences) *before* the decision
       is implemented, and its status must be "Accepted" before proceeding with
@@ -36,9 +44,12 @@ rules:
     - "Implementation tasks must follow TDD: write a failing (red) test first,
       then the minimal code to make it pass (green), then refactor while
       keeping tests green."
-    - Every scenario in the delta specs has a task that writes its test first;
-      the task names the scenario it covers.
+    - Every scenario in the delta specs is covered by a task that names the
+      scenario. Write one task per behavior ("test, then code"), not separate
+      RED and GREEN tasks; TDD order is enforced during apply.
     - Group tasks so that each numbered group can be committed on its own.
+    - A task that needs Docker, a server, or another external tool says so, so
+      the coordinator can check it before apply starts.
     - The last group is "Verification" and contains a task that runs
       `make check`, plus any manual checks the specs name.
 
@@ -56,7 +67,11 @@ operations:
         this session; never tick a task based on an assumption.
       - "Commit after each completed task group with a Conventional Commits
         message (feat:, fix:, test:, docs:, chore:)."
-      - Apply is finished only when `make check` passes.
+      - Tests must be deterministic. Never compare two clock reads for equality
+        and never rely on sleeps for ordering; set the time explicitly instead.
+      - Apply is finished only when `make check` passes twice in a row.
+      - Do the Docker or container checks named in the tasks yourself; do not
+        leave them for a later phase.
   archive:
     guidance:
       - Archive on the change branch, before the pull request is merged.
