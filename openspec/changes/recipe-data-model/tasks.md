@@ -10,18 +10,18 @@
 
 Mechanics are tested against small fixture script directories under `backend/tests/fixtures/` (e.g. revision 1 creates a table, revision 2 adds a column), independent of the real schema.
 
-- [ ] 2.1 Add the runtime dependency with `uv add alembic`; add `backend/data/*.db.bak-*` to `.gitignore`
-- [ ] 2.2 RED: test for scenario *Application starts without a database file* — running the migration function on a non-existent temporary path creates the file and records the fixture head revision
-- [ ] 2.3 GREEN: create `app/db/migrate.py` with a synchronous `run_migrations(database_path, script_location=...)` that builds the Alembic `Config` in code and upgrades to head over a `sqlite:///` URL (D3, D4); create the migration environment in `app/db/migrations/` (`env.py` reading the URL from the config with a fallback to `settings.database_path`, `fileConfig` only when started from an ini file, no foreign-key enforcement on the migration connection with a comment explaining why — D7; `script.py.mako`; empty `versions/`) and `backend/alembic.ini` for the developer CLI
-- [ ] 2.4 RED then GREEN: test for scenario *Application starts against an up-to-date database* — a second run applies nothing and leaves the revision and `sqlite_master` unchanged
-- [ ] 2.5 RED then GREEN: test for scenario *Application starts against a database with pending migrations and existing data* — a database at fixture revision 1 with rows is upgraded to head and all rows are unchanged
-- [ ] 2.6 RED: tests for scenarios *Existing database with pending migrations* (copy `<name>.bak-<revision>` next to the database, byte-identical to the file before the run) and *Existing database without a recorded schema version* (`<name>.bak-base`)
-- [ ] 2.7 GREEN: record file existence before connecting, compare current revision with head, copy with `shutil.copy2` before upgrading (D5)
-- [ ] 2.8 RED then GREEN: tests for scenarios *Nothing is pending* and *Database is created on this start* — no backup file appears
-- [ ] 2.9 RED then GREEN: test for scenario *A backup copy with the same name already exists* — the existing copy keeps its content
-- [ ] 2.10 RED then GREEN: test for scenario *Backup copy cannot be written* (e.g. `shutil.copy2` patched to raise `OSError`) — `RuntimeError` names the backup path and the revision is unchanged
-- [ ] 2.11 RED then GREEN: test for scenario *Migration raises an error* at the function level — a fixture revision whose `upgrade()` raises a distinctive message yields `RuntimeError` containing "Database migration failed", the database path, and that message, with the cause chained (D6)
-- [ ] 2.12 REFACTOR: tidy `app/db/migrate.py` and the tests while `uv run pytest` stays green
+- [x] 2.1 Add the runtime dependency with `uv add alembic`; add `backend/data/*.db.bak-*` to `.gitignore`
+- [x] 2.2 RED: test for scenario *Application starts without a database file* — running the migration function on a non-existent temporary path creates the file and records the fixture head revision
+- [x] 2.3 GREEN: create `app/db/migrate.py` with a synchronous `run_migrations(database_path, script_location=...)` that builds the Alembic `Config` in code and upgrades to head over a `sqlite:///` URL (D3, D4); create the migration environment in `app/db/migrations/` (`env.py` reading the URL from the config with a fallback to `settings.database_path`, `fileConfig` only when started from an ini file, no foreign-key enforcement on the migration connection with a comment explaining why — D7; `script.py.mako`; empty `versions/`) and `backend/alembic.ini` for the developer CLI
+- [x] 2.4 RED then GREEN: test for scenario *Application starts against an up-to-date database* — a second run applies nothing and leaves the revision and `sqlite_master` unchanged
+- [x] 2.5 RED then GREEN: test for scenario *Application starts against a database with pending migrations and existing data* — a database at fixture revision 1 with rows is upgraded to head and all rows are unchanged
+- [x] 2.6 RED: tests for scenarios *Existing database with pending migrations* (copy `<name>.bak-<revision>` next to the database, byte-identical to the file before the run) and *Existing database without a recorded schema version* (`<name>.bak-base`)
+- [x] 2.7 GREEN: record file existence before connecting, compare current revision with head, copy with `shutil.copy2` before upgrading (D5)
+- [x] 2.8 RED then GREEN: tests for scenarios *Nothing is pending* and *Database is created on this start* — no backup file appears
+- [x] 2.9 RED then GREEN: test for scenario *A backup copy with the same name already exists* — the existing copy keeps its content
+- [x] 2.10 RED then GREEN: test for scenario *Backup copy cannot be written* (e.g. `shutil.copy2` patched to raise `OSError`) — `RuntimeError` names the backup path and the revision is unchanged
+- [x] 2.11 RED then GREEN: test for scenario *Migration raises an error* at the function level — a fixture revision whose `upgrade()` raises a distinctive message yields `RuntimeError` containing "Database migration failed", the database path, and that message, with the cause chained (D6)
+- [x] 2.12 REFACTOR: tidy `app/db/migrate.py` and the tests while `uv run pytest` stays green
 
 ## 3. Migrations at application start
 

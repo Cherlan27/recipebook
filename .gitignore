@@ -4,6 +4,7 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/.pytest_cache/
 backend/data/*.db
+backend/data/*.db.bak-*
 
 # Frontend (Node / Vite)
 frontend/node_modules/
