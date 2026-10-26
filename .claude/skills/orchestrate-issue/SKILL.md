@@ -24,7 +24,7 @@ run `orca skills get orchestration` once and follow it.
 
 Stop and tell the human if one fails:
 
-- Branch is `issue-<n>-…` and you are in the issue worktree, not the main checkout.
+- Branch name contains `issue-<n>-` (a `<user>/` prefix added by Orca is fine) and you are in the issue worktree, not the main checkout.
 - `gh issue view <n>` is open and has no `refinement needed` label.
 - `backend/.venv` and `frontend/node_modules` exist; if not, run `uv sync --directory backend && npm ci --prefix frontend`.
 - If the issue or `tasks.md` mentions Docker or a container run, `docker info` must work before phase 2. If not, ask the human to start Docker Desktop.
@@ -37,6 +37,23 @@ orca worktree set --worktree active --workspace-status in-progress --comment "ph
 ```
 
 Update the worktree comment at each phase change.
+
+## Track
+
+Before phase 1, pick a track from the issue and CONTRIBUTING.md (*Tracks*), tell
+the human in two lines, and let them confirm or change it. In doubt, take the
+higher track. If a change turns out to need an ADR, a dependency, or a migration,
+stop and move it up.
+
+- **Full**: all phases below.
+- **Small**: 3 workers.
+  1. `claude` `sonnet`: `/opsx:propose` then `/opsx:apply <c>` in one session. Proposal, spec, and tasks only, no `design.md`. Accept as in phases 1 and 2. If the human wants the local model, split it: sonnet proposes, `opencode` applies.
+  2. `claude` `opus`: `/review-change <c>`, one round, no round 2.
+  3. `claude` `sonnet`: fix `Decision: fix` findings, then `/opsx:archive <c>`, push, and `gh pr create`. Accept as in phases 4 and 5.
+  No Gate 1. Gate 2 only if the review has a CRITICAL or MAJOR finding; otherwise show the recommendations in one line, apply them, and go on. Gate 3 as usual.
+- **Trivial**: no OpenSpec change and no review. One `claude` `sonnet` worker (or the human) edits on branch `issue-<n>-<name>`, runs `make check`, and opens the PR with `Closes #<n>`. Accept: `make check` passes and the PR exists. Only Gate 3.
+
+Log the chosen track and every change of it in the workflow log (Trivial: in the PR description).
 
 ## Workflow log
 
@@ -72,9 +89,9 @@ the human. Do not create extra workers for tiny leftovers a running worker can f
 ## Gate 1
 
 Summarize in at most 10 lines: what changes, requirement and scenario count,
-task groups, ADR yes/no. Judge **small change** against CONTRIBUTING.md (no ADR,
-no new dependency, no migration, about 5 tasks or fewer, one side only). Ask:
-approve? and apply with sonnet or locally (only if small)?
+task groups, ADR yes/no. If the proposal shows the change is smaller or bigger
+than the chosen track, say so. Ask: approve? and apply with sonnet or locally
+(only for a small change)?
 
 **Local model:** only for a small change. If the human asks for it on a bigger
 change, say once that the rules say no, then do it. If the worker has made no

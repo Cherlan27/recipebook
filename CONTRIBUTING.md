@@ -9,7 +9,8 @@ accepted ADR plus updated arc42 docs before any architecture decision) live in
 
 ## One issue, one change, one branch
 
-Every piece of work starts from a GitHub issue and maps one-to-one onto:
+Every piece of work starts from a GitHub issue and maps one-to-one onto
+(Trivial track: no OpenSpec change, see *Tracks*):
 
 - an **OpenSpec change** under `openspec/changes/<change-name>/`,
 - a **git worktree** and **branch** sharing one name, `issue-<number>-<short-name>`,
@@ -70,10 +71,23 @@ Changes that affect packaging or deployment are additionally verified on the
 Raspberry Pi from the branch (see the deployment section in the
 [README](README.md)).
 
-**Small change** – the local model may apply a change only if *all* of these
-hold: no architecture decision (no ADR), no new dependency, no database
-migration, at most about five tasks, and only one side (backend *or*
-frontend) is touched. If its run leaves verification failing, the apply is
+**Tracks** – the coordinator proposes a track before phase 1 and the human
+confirms it. In doubt, take the higher track. If a change turns out to need an
+ADR, a dependency, or a migration, it moves up.
+
+| Track | When | Flow | Gates |
+|---|---|---|---|
+| **Full** | everything that is not small | phases 1–5 above | 1, 2, 3 |
+| **Small** | no ADR, no new dependency, no migration, at most about 5 tasks, one side only (backend *or* frontend) | 3 workers: `sonnet` propose + apply in one session (proposal, spec, tasks; no `design.md`), `opus` review (one round, no round 2), `sonnet` fixes + archive + PR | 3; Gate 2 only for a CRITICAL or MAJOR finding |
+| **Trivial** | docs, config, typo; at most 2 files; no new behavior; no code under `backend/app` or `frontend/src` | no OpenSpec change, no review: branch, `make check`, PR with `Closes #<issue>`; one `sonnet` worker or the human | 3 |
+
+The Trivial track is the only exception to "one issue, one OpenSpec change".
+The Small and Trivial tracks are untried: after the first few issues, check the
+workflow logs and move work up a track if the review or CI catches what the
+lighter track skipped.
+
+**Local model** – only on the Small track, and then propose and apply are split
+into two workers (`sonnet` proposes, `opencode` applies). If its run leaves verification failing, the apply is
 handed to `sonnet` instead of retried locally. The same happens if the local
 worker has made no commit and ticked no task after 10 minutes. (Issue #3: the
 local model spent 17 minutes planning a non-small change and was stopped.)
