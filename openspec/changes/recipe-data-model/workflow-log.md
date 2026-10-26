@@ -18,3 +18,5 @@
 - 2026-10-26 phase 4 review fixes started: claude/sonnet
 - 2026-10-26 phase 4 review fixes (claude/sonnet, ctx_f6491a588216) finished: succeeded, 4 commits a2ab078..502ae3c; R1-R5, R7, R8 Status: fixed, R6 deferred. NOT accepted at first: coordinator's `make check` failed once on test_timestamps_are_set_on_creation (flaky: created_at and updated_at come from two separate utcnow() calls, microseconds apart; the equality assertion is flaky); reran green. Sent to a small follow-up fix worker.
 - 2026-10-26 phase 4b started: claude/sonnet, fix flaky timestamp test only. Round 2 of phase 3 follows (required because MAJOR findings R1/R2 were fixed; last allowed round).
+- 2026-10-26 phase 4b (claude/sonnet, ctx_31520639420c) finished: succeeded, commit ef3c90e (flake reproduced 17/3000, test made deterministic). Accepted: coordinator `make check` passes.
+- 2026-10-26 phase 3 round 2 started: claude/opus (last allowed round)
