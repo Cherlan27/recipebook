@@ -32,6 +32,24 @@ make frontend  # equivalent to: cd frontend && npm run dev
 
 The backend runs at `http://localhost:8000` (health check at `/health`), the frontend dev server at `http://localhost:5173`.
 
+### Database migrations
+
+The database schema is versioned with [Alembic](https://alembic.sqlalchemy.org/)
+(see [ADR-8](docs/adr/0008-alembic-migrations-at-startup.md)). Pending migrations
+run automatically every time the backend starts, so `make backend` always
+brings `backend/data/app.db` up to date; there is no separate command.
+
+After changing a model in `backend/app/models/`, create a revision, review the
+generated file in `backend/app/db/migrations/versions/` (constraints, defaults,
+`ON DELETE` rules), and commit it together with the model change:
+
+```
+cd backend && uv run alembic revision --autogenerate -m "describe the change"
+```
+
+If a model change has no revision, the test that compares the migrated schema
+with the models fails in `make check`.
+
 ## Running Tests
 
 ```
@@ -96,6 +114,27 @@ VPS deployment with authentication).
 4. Open the application from any device in the home network at
    `http://<device-ip>:8090`.
 
+### Database migrations on container start
+
+Every container start applies pending database migrations to
+`data/app.db` before the application serves requests; nothing has to be run
+by hand. A failing migration keeps the container from starting: the process
+exits with a non-zero status and the error ("Database migration failed for
+...") is in `docker compose logs`.
+
+Before applying pending migrations to an existing database, the application
+copies the file to `data/app.db.bak-<revision>`, where `<revision>` is the
+schema version the database had before the migration (`base` if it had none,
+e.g. `app.db.bak-base` on the first start after this feature was introduced).
+Copies are only written when migrations are pending, an existing copy is never
+overwritten, and they are never cleaned up automatically — delete old ones by
+hand when you no longer need them.
+
+To restore a copy after a failed or unwanted migration: stop the container
+(`docker compose down`), replace `data/app.db` with the matching
+`data/app.db.bak-<revision>`, check out the previous release, and start it
+again with `docker compose up -d --build`.
+
 ### What persists, and what doesn't
 
 The `data/` directory is bind-mounted into the container, so the database
@@ -103,7 +142,9 @@ survives `docker restart` and `docker compose up -d --build` (rebuilding the
 image and recreating the container). It does **not** survive
 `docker compose down -v`, deleting the `data/` directory, or storage failure
 (e.g. an SD card dying on the Raspberry Pi). Surviving restarts is not a
-backup — there is currently no backup mechanism for this data.
+backup: the only copies the application makes are the migration copies
+described above, and they live on the same storage as the database. Back up
+`data/` yourself to protect against storage failure.
 
 ### Troubleshooting
 

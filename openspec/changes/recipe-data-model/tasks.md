@@ -53,9 +53,9 @@ Model tests use a `conftest.py` fixture that runs the real migrations on a tempo
 
 ## 5. Developer and deployment documentation
 
-- [ ] 5.1 README, local development: migrations run automatically on `make backend`; how to create a revision (`cd backend && uv run alembic revision --autogenerate -m "..."`, review the generated file, commit it) and that the drift test fails when a model change has no revision
-- [ ] 5.2 README, deployment: migrations run automatically on every container start; a failing migration keeps the container from starting (see `docker compose logs`); backup copies `app.db.bak-<revision>` are written to the mounted `data/` directory only when migrations are pending, are never cleaned up automatically, and how to restore one (stop, replace `app.db`, start the previous release); adjust "What persists" so it no longer says there is no backup mechanism at all
-- [ ] 5.3 Update `CLAUDE.md` architecture notes for `app/db/session.py`, `app/db/migrate.py`, `app/db/migrations/`, and `app/models/`
+- [x] 5.1 README, local development: migrations run automatically on `make backend`; how to create a revision (`cd backend && uv run alembic revision --autogenerate -m "..."`, review the generated file, commit it) and that the drift test fails when a model change has no revision
+- [x] 5.2 README, deployment: migrations run automatically on every container start; a failing migration keeps the container from starting (see `docker compose logs`); backup copies `app.db.bak-<revision>` are written to the mounted `data/` directory only when migrations are pending, are never cleaned up automatically, and how to restore one (stop, replace `app.db`, start the previous release); adjust "What persists" so it no longer says there is no backup mechanism at all
+- [x] 5.3 Update `CLAUDE.md` architecture notes for `app/db/session.py`, `app/db/migrate.py`, `app/db/migrations/`, and `app/models/`
 
 ## 6. Verification
 
