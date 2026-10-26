@@ -9,3 +9,4 @@
 - 2026-10-26 manual intervention: local-model fallback to sonnet per human decision; leftovers of the qwen attempt (uncommitted task 2.1 changes) handed to the sonnet worker.
 - 2026-10-26 phase 2 apply restarted: claude/sonnet
 - 2026-10-26 phase 2 apply (claude/sonnet, dispatch ctx_ab4dc2c2d7e0) finished: succeeded, 5 commits; 30/31 tasks done. Coordinator re-ran `make check`: passes. Acceptance not fully met: task 6.3 (local container run) unticked because the Docker daemon is not running on this machine.
+- 2026-10-26 gate (apply): human chose to run task 6.3 locally; coordinator started Docker Desktop (daemon was down). Phase 2b: sonnet worker for task 6.3 only.
