@@ -190,16 +190,45 @@ def test_interrupted_backup_copy_is_not_mistaken_for_a_backup_on_the_next_start(
     assert current_revision(database_path) == "r2"
 
 
-def test_backup_copy_is_flushed_to_disk_before_it_gets_its_final_name(tmp_path, monkeypatch):
+def test_leftover_partial_copy_from_a_killed_start_is_overwritten_by_the_next_start(tmp_path):
     database_path = tmp_path / "app.db"
     upgrade_to(database_path, OK_SCRIPTS, "r1")
-    fsynced: list[int] = []
-    real_fsync = os.fsync
-    monkeypatch.setattr("app.db.migrate.os.fsync", lambda fd: (fsynced.append(fd), real_fsync(fd))[1])
+    content_before = database_path.read_bytes()
+    # A kill or power cut during the copy runs no cleanup and leaves the temporary file behind.
+    leftover = tmp_path / "app.db.bak-r1.partial"
+    leftover.write_bytes(content_before[: len(content_before) // 2] + b"stale")
 
     run_migrations(database_path, script_location=OK_SCRIPTS)
 
-    assert fsynced
+    assert (tmp_path / "app.db.bak-r1").read_bytes() == content_before
+    assert not leftover.exists()
+    assert current_revision(database_path) == "r2"
+
+
+def test_backup_copy_is_flushed_to_disk_before_it_gets_its_final_name(tmp_path, monkeypatch):
+    database_path = tmp_path / "app.db"
+    upgrade_to(database_path, OK_SCRIPTS, "r1")
+    partial = tmp_path / "app.db.bak-r1.partial"
+    final = tmp_path / "app.db.bak-r1"
+    events: list[tuple[str, bool, bool, bool]] = []
+    real_fsync, real_replace = os.fsync, os.replace
+
+    def recording_fsync(fd):
+        on_partial = partial.exists() and os.path.samestat(os.fstat(fd), partial.stat())
+        events.append(("fsync", on_partial, partial.exists(), final.exists()))
+        real_fsync(fd)
+
+    def recording_replace(source, destination):
+        events.append(("replace", Path(source) == partial, partial.exists(), final.exists()))
+        real_replace(source, destination)
+
+    monkeypatch.setattr("app.db.migrate.os.fsync", recording_fsync)
+    monkeypatch.setattr("app.db.migrate.os.replace", recording_replace)
+
+    run_migrations(database_path, script_location=OK_SCRIPTS)
+
+    # (call, concerns the .partial file, .partial exists, final name exists) at call time
+    assert events == [("fsync", True, True, False), ("replace", True, True, False)]
 
 
 def test_migration_progress_and_backup_are_logged(tmp_path, caplog):
