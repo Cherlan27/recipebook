@@ -8,3 +8,4 @@
 - 2026-10-26 11:15-11:35 phase 2 apply with opencode/qwen3.8:27b (dispatch ctx_72dd82154f46) aborted by the human: after ~20 min it had only planned and done task 2.1 (alembic dependency, .gitignore entry, uncommitted). worker-stop returned stop_unknown (tab is user_owned); the human closed the tab manually.
 - 2026-10-26 manual intervention: local-model fallback to sonnet per human decision; leftovers of the qwen attempt (uncommitted task 2.1 changes) handed to the sonnet worker.
 - 2026-10-26 phase 2 apply restarted: claude/sonnet
+- 2026-10-26 phase 2 apply (claude/sonnet, dispatch ctx_ab4dc2c2d7e0) finished: succeeded, 5 commits; 30/31 tasks done. Coordinator re-ran `make check`: passes. Acceptance not fully met: task 6.3 (local container run) unticked because the Docker daemon is not running on this machine.
