@@ -104,7 +104,8 @@ Home network
         │   ├── GET  /*      → static files (built frontend, dist/)
         │   └── GET  /api/*  → FastAPI routers (e.g. /health)
         └── bind mount ./data → /app/data
-                                  └── app.db (SQLite, local storage only)
+                                  ├── app.db (SQLite, local storage only)
+                                  └── app.db.bak-<revision> (copy before each migration, ADR-8)
 ----
 
 Motivation::
@@ -116,6 +117,7 @@ Quality and/or Performance Features::
 * Frontend and API share one origin and one published port — no CORS configuration is needed in this environment (CORS remains a development-only concern, see Infrastructure Level 1).
 * Application data (the SQLite file) is bind-mounted from the host, so it survives container restarts and image rebuilds. The bind mount must be on local storage — SQLite's file locking is unreliable on NFS/SMB shares.
 * The container runs as a non-root user (UID/GID configurable, defaulting to `1000:1000`, the default account on Raspberry Pi OS).
+* Pending schema migrations run on every container start, before the instance answers requests (ADR-8). Beforehand the existing `app.db` is copied to `app.db.bak-<revision>` in the same bind-mounted directory; a failing migration keeps the container from becoming healthy.
 * Restart-safe is not the same as backed up: the data survives `docker restart`/`docker compose up -d --build`, but not volume removal or storage failure.
 * Scope is the home network only; there is no TLS and no authentication (see PBI-05, #5, for the VPS/public-exposure case).
 

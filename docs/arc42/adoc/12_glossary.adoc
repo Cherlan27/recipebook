@@ -48,6 +48,15 @@ endif::arc42help[]
 |CORS (Cross-Origin Resource Sharing)
 |Browser mechanism that allows a web page to request resources from a different origin (domain/port); must be explicitly enabled server-side for the frontend dev origin.
 
+|Alembic
+|Migration tool for SQLAlchemy; applies versioned schema changes (revisions) to a database and records the applied revision in the table `alembic_version`.
+
+|Migration / Revision
+|A versioned, committed script that changes the database schema from one revision to the next; pending revisions are applied at application start (ADR-8).
+
+|Backup copy (`app.db.bak-<revision>`)
+|Copy of the database file written next to it before pending migrations run; `<revision>` is the schema version the copy contains (`base` if none).
+
 |Monorepo
 |A single repository that versions multiple independent projects together (here: `backend/`, `frontend/`).
 |===
