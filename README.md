@@ -32,6 +32,24 @@ make frontend  # equivalent to: cd frontend && npm run dev
 
 The backend runs at `http://localhost:8000` (health check at `/health`), the frontend dev server at `http://localhost:5173`.
 
+### Database migrations
+
+The database schema is versioned with [Alembic](https://alembic.sqlalchemy.org/)
+(see [ADR-8](docs/adr/0008-alembic-migrations-at-startup.md)). Pending migrations
+run automatically every time the backend starts, so `make backend` always
+brings `backend/data/app.db` up to date; there is no separate command.
+
+After changing a model in `backend/app/models/`, create a revision, review the
+generated file in `backend/app/db/migrations/versions/` (constraints, defaults,
+`ON DELETE` rules), and commit it together with the model change:
+
+```
+cd backend && uv run alembic revision --autogenerate -m "describe the change"
+```
+
+If a model change has no revision, the test that compares the migrated schema
+with the models fails in `make check`.
+
 ## Running Tests
 
 ```
@@ -96,6 +114,60 @@ VPS deployment with authentication).
 4. Open the application from any device in the home network at
    `http://<device-ip>:8090`.
 
+### Database migrations on container start
+
+Every container start applies pending database migrations to
+`data/app.db` before the application serves requests; nothing has to be run
+by hand. A failing migration keeps the container from starting: the process
+exits with a non-zero status and the error ("Database migration failed for
+...") is in `docker compose logs`.
+
+Before applying pending migrations to an existing database, the application
+copies the file to `data/app.db.bak-<revision>`, where `<revision>` is the
+schema version the database had before the migration (`base` if it had none,
+e.g. `app.db.bak-base` on the first start after this feature was introduced).
+Copies are only written when migrations are pending, an existing copy is never
+overwritten (the log then says `Database backup skipped` and names the file),
+and they are never cleaned up automatically — delete old ones by hand when you
+no longer need them. The migration progress and each copy written or skipped
+are logged (`docker compose logs`). The `app.db.bak-base` left by the first
+start after this feature was introduced is a copy of the empty database from
+before it; it can be deleted once you have checked that start in the logs.
+
+On every start, also when nothing was migrated, the application checks the
+database for rows that point at rows that no longer exist (`PRAGMA
+foreign_key_check`). If it finds any, it does not start and the log says
+`Database has foreign key violations: ...` followed by the offending rows. A
+migration can cause this, and so can a delete made directly in the database
+with the `sqlite3` tool, which does not enforce foreign keys by default. Either
+repair the listed rows or restore a copy as described below; the container keeps
+failing its start until one of the two is done.
+
+To restore a copy after a failed or unwanted migration:
+
+1. Stop the container (`docker compose down`).
+2. Pick the copy named after the revision of the release you go back to. If the
+   failed deployment wrote more than one copy, that is the oldest of them (a
+   later start may have copied a half-migrated file). The revision of a release
+   is the newest file in its `backend/app/db/migrations/versions/`. For a copy,
+   this one-liner (the `sqlite3` command-line tool is not installed on the Pi or
+   in the image) prints its revision:
+
+   ```
+   python3 -c "import sqlite3, sys; print(sqlite3.connect('file:' + sys.argv[1] + '?mode=ro', uri=True).execute('SELECT version_num FROM alembic_version').fetchone())" data/app.db.bak-<revision>
+   ```
+
+   A `bak-base` copy was never migrated and has no `alembic_version` table, so
+   the command fails with `no such table: alembic_version`; that is the answer
+   (`base`).
+3. Replace `data/app.db` with that copy, then **rename the copy** with a unique
+   suffix, for example `app.db.bak-<revision>.restored-<YYYYMMDD>`. Otherwise
+   its name stays taken, the next deployment skips its backup, and the data
+   entered in between is not copied before the migration runs again. The date
+   keeps a repeated restore from replacing an earlier renamed copy.
+4. Check out the previous release and start it again with
+   `docker compose up -d --build`.
+
 ### What persists, and what doesn't
 
 The `data/` directory is bind-mounted into the container, so the database
@@ -103,7 +175,9 @@ survives `docker restart` and `docker compose up -d --build` (rebuilding the
 image and recreating the container). It does **not** survive
 `docker compose down -v`, deleting the `data/` directory, or storage failure
 (e.g. an SD card dying on the Raspberry Pi). Surviving restarts is not a
-backup — there is currently no backup mechanism for this data.
+backup: the only copies the application makes are the migration copies
+described above, and they live on the same storage as the database. Back up
+`data/` yourself to protect against storage failure.
 
 ### Troubleshooting
 

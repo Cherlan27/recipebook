@@ -1,11 +1,31 @@
+import asyncio
 from collections.abc import AsyncGenerator
 
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
+from app.db.migrate import run_migrations
 
-engine = create_async_engine(settings.database_url)
+
+def create_engine_with_foreign_keys(url: str) -> AsyncEngine:
+    """SQLite enforces foreign keys only per connection, so switch them on for every new one.
+
+    Only application connections do this; the migration connection deliberately does not
+    (see app/db/migrations/env.py).
+    """
+    engine = create_async_engine(url)
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def enable_foreign_keys(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    return engine
+
+
+engine = create_engine_with_foreign_keys(settings.database_url)
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -15,7 +35,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Ensure the database directory exists, then open a connection so the SQLite driver creates the database file."""
+    """Ensure the database directory exists, then bring the schema up to date (see ADR-8)."""
     try:
         settings.database_path.parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
@@ -23,10 +43,5 @@ async def init_db() -> None:
             f"Cannot create database directory at {settings.database_path.parent}: {exc}"
         ) from exc
 
-    try:
-        async with engine.begin():
-            pass
-    except SQLAlchemyError as exc:
-        raise RuntimeError(
-            f"Cannot open database at {settings.database_path}: {exc}"
-        ) from exc
+    # Alembic is synchronous and must not run on the event loop's thread.
+    await asyncio.to_thread(run_migrations, settings.database_path)

@@ -52,11 +52,24 @@ endif::arc42help[]
 
 Frontend (Vite dev server, `http://localhost:5173`) and backend (FastAPI, its own port) run as separate processes with different origins. The backend explicitly enables CORS for the frontend dev origin, so the frontend can call backend routes directly via `fetch`/`axios` without needing a proxy.
 
+=== Persistence and Schema Migrations
+
+The SQLite schema is owned by versioned Alembic migrations in `backend/app/db/migrations/` (ADR-8); tables are never created implicitly.
+
+* **Startup migrations.** On every start, `init_db()` brings the database to the latest revision before any request is served — the same path for `make backend`, tests, and the container. Migrations use the synchronous `sqlite3` driver in a worker thread, while the application itself stays on async SQLAlchemy (ADR-1).
+* **Backup copy.** If the database file existed before the start and migrations are pending, it is copied to `<name>.bak-<revision>` next to it first (`<revision>` = the schema version the copy contains, `base` if none). Nothing is copied when no migration is pending or the database is new, and an existing copy is never overwritten (a warning names it). The copy is written under a temporary name, flushed, and renamed, so only a complete copy has the final name. Copies are not cleaned up automatically. Progress and copies are logged through the `uvicorn.error` logger, the only logger that reaches the container log.
+* **Failure.** A failing backup or migration aborts startup with an error naming the path and the cause; the process exits non-zero. Recovery is restoring the copy named after the revision of the release being returned to (the oldest copy the failed deployment wrote), renaming that copy afterwards (to `app.db.bak-<revision>.restored-<YYYYMMDD>`) so the next deployment can write a fresh one, and starting the previous release.
+* **Integrity in the database.** Uniqueness, value ranges (`effort` 1–3, `kid_friendly` values), and link cascades are database constraints, so they also hold for direct SQL. SQLite enforces foreign keys only per connection: the application engine enables `PRAGMA foreign_keys=ON` on every connection, while the migration connection explicitly switches it off, because batch-mode table recreation would otherwise cascade-delete link rows; a `PRAGMA foreign_key_check` on every start (also when nothing was migrated) fails startup on dangling rows, whether a migration or an edit outside the application left them.
+* **Constraint naming.** `Base.metadata` uses an explicit naming convention, so constraints have stable names that later batch migrations can address.
+* **Case-insensitive text.** SQLite's `NOCASE` and `lower()` fold only ASCII. Where uniqueness must ignore case (tag names), the application stores an additional key and the unique constraint sits on that key. Names are first normalized to Unicode NFC (decomposed umlauts from macOS or copy-paste equal composed ones), then `str.casefold()` is applied, which deliberately also maps `ß` to `ss` (`Maße` and `Masse` are the same tag).
+* **New revisions.** `cd backend && uv run alembic revision --autogenerate -m "..."`, review the generated file, commit it. A test compares the migrated schema with the models and fails when a model change has no revision.
+
 === Automated Testing
 
 The project follows Test-Driven Development (red-green-refactor) on both sides of the stack:
 
 * **Backend**: `pytest` + FastAPI's `TestClient`. The `TestClient` works unchanged against async-defined endpoints (it handles event-loop management internally), so no special effort is needed to test async routes. Starting point: a test for `GET /health` → `200 OK`.
+* **Database**: model and migration tests run against temporary databases built by the real migrations, not by `create_all()`, so the constraints under test are the ones the migrations create.
 * **Frontend**: Vitest, Vite-native and with first-class Vue 3 + TypeScript + Composition API support (see ADR-5).
 
 === Local Development Orchestration

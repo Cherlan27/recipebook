@@ -26,13 +26,29 @@ See https://docs.arc42.org/section-11/[Risks and Technical Debt] in the arc42 do
 ****
 endif::arc42help[]
 
-=== Async migrations with Alembic
+=== Partially applied migrations on SQLite
 
-*Risk*: The database layer uses SQLAlchemy in async mode (`aiosqlite`). Once real models and schema migrations (e.g. with Alembic) are added, the setup is not trivial — Alembic needs either a sync-driver workaround or an async-capable `env.py`.
+*Risk*: SQLite DDL is not transactional under Alembic, and migrations that change existing tables recreate them (batch mode). A migration that fails half-way can leave the database partially migrated while it still records the old revision.
 
-*Impact*: Does not affect Issue #1 (no models yet), but will affect the next issue that introduces a first domain model (e.g. recipe).
+*Impact*: The instance does not start (ADR-8 aborts startup on a failed migration); the database file may be inconsistent.
 
-*Mitigation*: Plan the migration setup as its own effort in the first feature issue that adds a real model, not in the scaffold.
+*Mitigation*: Before pending migrations run, the existing file is copied to `app.db.bak-<revision>`, and an existing copy is never overwritten, so the last good state survives repeated failed starts. The copy is written under a temporary name, flushed, and then renamed, so an interrupted copy never counts as a backup, and a skipped backup is logged as a warning. Restore procedure: stop the instance, replace `app.db` with the copy named after the revision of the release you go back to (the oldest copy the failed deployment wrote), rename that copy (to `app.db.bak-<revision>.restored-<YYYYMMDD>`) so the name is free for the next deployment, then start the previous release (README).
+
+=== Foreign keys during batch migrations
+
+*Risk*: Batch-mode migrations drop and recreate tables. With SQLite foreign-key enforcement enabled, dropping `recipes` or `tags` would cascade-delete every row in `recipe_tags`.
+
+*Impact*: Silent loss of all recipe–tag links during an otherwise successful migration.
+
+*Mitigation*: Foreign-key enforcement is enabled only on the application's connections; the migration connection switches it off explicitly (documented in `env.py`, covered by a test), and `PRAGMA foreign_key_check` on every start fails startup if dangling links exist, whether a migration or a direct edit left them; because it also runs on the automatic restart, the instance stays down until a backup copy is restored or the rows are repaired. Each new revision that alters existing tables gets a test that upgrades a database with data in place.
+
+=== Accumulating backup copies
+
+*Risk*: Every start with pending migrations leaves an `app.db.bak-<revision>` file in the data directory; nothing removes them.
+
+*Impact*: Disk usage grows by one database copy per migrated release — small for a recipe database, but unbounded.
+
+*Mitigation*: Accepted for now (cleanup was deliberately excluded from #3). The README documents the copies and that old ones can be deleted by hand, including the `app.db.bak-base` left by the first start on the Pi after this feature was introduced.
 
 === `make` dependency on Windows
 
@@ -56,7 +72,7 @@ endif::arc42help[]
 
 *Impact*: All recipe data on the deployed instance.
 
-*Mitigation*: Stated explicitly in the deployment instructions so the persistence guarantee is not overread. Backup remains an unaddressed concern, to be picked up as its own effort if needed.
+*Mitigation*: Stated explicitly in the deployment instructions so the persistence guarantee is not overread. Since ADR-8 a copy of the database is written before schema migrations, but it lives on the same storage and only exists for releases that migrate — it is a restore point for failed migrations, not a backup. Regular backups remain an unaddressed concern, to be picked up as their own effort if needed.
 
 === No authentication on the home-network deployment
 

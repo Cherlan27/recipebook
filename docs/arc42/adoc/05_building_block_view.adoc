@@ -76,7 +76,7 @@ _Interface(s)_: HTTP/JSON, e.g. `GET /health`.
 
 _Directory/File Location_: `backend/`
 
-_(Optional) Open Issues/Problems/Risks_: Migration strategy (Alembic) not yet decided — see <<section-technical-risks>>.
+_(Optional) Open Issues/Problems/Risks_: Schema migrations run at startup and can prevent it (ADR-8) — see <<section-technical-risks>>.
 
 ==== Frontend
 
@@ -97,8 +97,43 @@ The backend is internally layered to separate routing, configuration, database a
 | **Name** | **Responsibility**
 | `app/api/routes` | HTTP endpoints (e.g. `health.py` for `GET /health`)
 | `app/core` | Central configuration (e.g. CORS origin, DB path) via settings
-| `app/db` | SQLAlchemy engine/session management (async, `aiosqlite` driver), declarative base
-| `app/models` | SQLAlchemy models (still empty in Issue #1, basis for future domain models such as recipes)
+| `app/db` | SQLAlchemy engine/session management (async, `aiosqlite` driver, SQLite foreign-key enforcement on every connection), declarative base with a constraint naming convention, `init_db()` called from the FastAPI `lifespan`
+| `app/db/migrate.py` | Brings the database to the latest schema version at startup: detects pending migrations, writes the backup copy `app.db.bak-<revision>`, runs Alembic, and turns failures into a startup error (ADR-8)
+| `app/db/migrations` | Alembic environment (`env.py`, synchronous `sqlite3` driver) and the versioned revisions in `versions/`; `backend/alembic.ini` points the developer CLI here
+| `app/models` | SQLAlchemy models of the domain: `Recipe`, `Tag`, and the `recipe_tags` link table (see <<section-data-model>>)
 |===
 
 This layering is deliberately introduced already in the scaffold (Issue #1) so follow-up issues (e.g. recipe CRUD) can slot in without retrofitting the structure.
+
+[[section-data-model]]
+==== Data Model
+
+Introduced in Issue #3 (PBI-03). The fields follow the existing paper recipe system so both stay compatible; only `nr` and `name` are required, so incomplete paper recipes can be captured. The schema is created and evolved exclusively by Alembic migrations (ADR-8).
+
+[source]
+----
+recipes                         recipe_tags                      tags
+──────────────────────────      ─────────────────────────        ──────────────────────────
+id            PK          ◀──── recipe_id  PK, FK (CASCADE)
+nr            int, unique,      tag_id     PK, FK (CASCADE) ───▶ id        PK
+              required                                           name      trimmed, first
+name          text, required                                               spelling kept
+effort        int, CHECK 1-3                                     name_key  casefolded name,
+time_minutes  int                                                          unique
+servings      int
+kid_friendly  yes | with_adjustments | no
+ingredients   text, one line per ingredient
+steps         text, one line per step
+created_at    timestamp (UTC)
+updated_at    timestamp (UTC)
+----
+
+[cols="1,3", options="header"]
+|===
+| **Table** | **Rules**
+| `recipes` | `nr` is unique and required, `name` is required; `effort` is limited to 1–3 and `kid_friendly` to `yes` / `with_adjustments` / `no` by CHECK constraints; `ingredients` and `steps` are free text with one line per entry; `created_at` / `updated_at` are set by the application (UTC) with a database default as fallback.
+| `tags` | Free-form, no fixed list. The name is trimmed and stored in the spelling of its first creation; `name_key` (the casefolded name) carries the unique constraint, so uniqueness ignores case including umlauts. Names are normalized to Unicode NFC first; `casefold()` makes `ß` and `ss` equal.
+| `recipe_tags` | n:m link with a composite primary key (a tag is attached to a recipe at most once). Deleting a recipe or a tag removes only the links, enforced by `ON DELETE CASCADE`.
+|===
+
+Deliberately not part of the model yet: an image reference (added by #4), structured ingredients with quantities.

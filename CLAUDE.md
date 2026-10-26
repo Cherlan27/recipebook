@@ -38,16 +38,18 @@ Backend dependencies are managed with `uv` (`uv add <pkg>`, `uv add --dev <pkg>`
 **Backend (`backend/app/`)** is layered on purpose (see `docs/adr/0006-layered-backend-structure.md`), even though it currently only has one endpoint:
 - `app/api/routes/` — FastAPI routers (one module per resource, e.g. `health.py`)
 - `app/core/config.py` — `pydantic-settings`-based `Settings`, exported as a singleton `settings`; env vars use the `RECIPEBOOK_` prefix
-- `app/db/session.py` — async SQLAlchemy engine/session (SQLite via `aiosqlite`, driver URL `sqlite+aiosqlite:///...`). `init_db()` is called from the FastAPI `lifespan` in `app/main.py` specifically to force-open a connection on startup — `create_async_engine` alone does not create the `.db` file, only an actual connection does.
-- `app/db/base.py` — SQLAlchemy `DeclarativeBase` for future models
-- `app/models/` — SQLAlchemy models (empty so far)
+- `app/db/session.py` — async SQLAlchemy engine/session (SQLite via `aiosqlite`, driver URL `sqlite+aiosqlite:///...`). The engine enables `PRAGMA foreign_keys=ON` on every connection (`create_engine_with_foreign_keys`). `init_db()` is called from the FastAPI `lifespan` in `app/main.py`: it creates the data directory and runs the schema migrations in a worker thread, which is also what creates the `.db` file (`create_async_engine` alone does not).
+- `app/db/migrate.py` — synchronous `run_migrations()` (Alembic, `sqlite://` driver, see `docs/adr/0008-alembic-migrations-at-startup.md`): copies an existing database with pending migrations to `<name>.bak-<revision>` first, upgrades to head, and turns any failure into a `RuntimeError` that aborts startup; on every start it also aborts if `PRAGMA foreign_key_check` reports violations
+- `app/db/migrations/` — Alembic environment (`env.py`) and revisions (`versions/`); create one with `cd backend && uv run alembic revision --autogenerate -m "..."`, review it, and commit it with the model change (a drift test fails otherwise). The migration connection deliberately has foreign keys off.
+- `app/db/base.py` — SQLAlchemy `DeclarativeBase` with the constraint naming convention
+- `app/models/` — SQLAlchemy models: `Recipe`, `KidFriendly`, `recipe_tags` (`recipe.py`) and `Tag` (`tag.py`); import new models in `app/models/__init__.py` so `Base.metadata` is complete
 - `app/main.py` — wires the FastAPI app, CORS middleware, and routers together
 
 Routes are added to `app/main.py` via `app.include_router(...)`; new endpoint modules go under `app/api/routes/`.
 
 **Frontend (`frontend/`)** is a standard Vite + Vue 3 + TypeScript scaffold. Components use the Composition API (`<script setup lang="ts">`), not the Options API. No state management library (e.g. Pinia) is set up yet — add one only when a feature needs state shared across components.
 
-**Database**: SQLite file at `backend/data/app.db`, auto-created on backend startup, git-ignored.
+**Database**: SQLite file at `backend/data/app.db`, auto-created and migrated to the latest schema on backend startup, git-ignored (as are the `app.db.bak-*` copies made before a migration).
 
 ## Conventions (from `openspec/config.yaml`)
 

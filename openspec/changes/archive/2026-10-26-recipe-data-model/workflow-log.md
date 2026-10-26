@@ -1,0 +1,30 @@
+# Workflow log: recipe-data-model (issue #3)
+
+- 2026-10-26 10:53 run run_c55725383495 created; deps installed (uv sync, npm ci) because the fresh worktree had none. Branch is `Cherlan27/issue-3-recipe-model` (user-prefixed), not bare `issue-3-...`; accepted.
+- 2026-10-26 10:53 phase 1 propose started: claude/opus (dispatch ctx_bd276d11fcfb)
+- 2026-10-26 11:01 phase 1 propose finished: succeeded, commit d37e644; accepted (all 4 artifacts done, `openspec validate --strict` passes, 33 scenarios, ADR-0008 + arc42 written)
+- 2026-10-26 gate 1: human approved the proposal as is. Not a small change per CONTRIBUTING.md, but the human explicitly asked to try the local model (opencode, ollama/qwen3.8:27b) for apply. Fallback on failure: sonnet apply worker.
+- 2026-10-26 phase 2 apply started: opencode/ollama/qwen3.8:27b
+- 2026-10-26 11:15-11:35 phase 2 apply with opencode/qwen3.8:27b (dispatch ctx_72dd82154f46) aborted by the human: after ~20 min it had only planned and done task 2.1 (alembic dependency, .gitignore entry, uncommitted). worker-stop returned stop_unknown (tab is user_owned); the human closed the tab manually.
+- 2026-10-26 manual intervention: local-model fallback to sonnet per human decision; leftovers of the qwen attempt (uncommitted task 2.1 changes) handed to the sonnet worker.
+- 2026-10-26 phase 2 apply restarted: claude/sonnet
+- 2026-10-26 phase 2 apply (claude/sonnet, dispatch ctx_ab4dc2c2d7e0) finished: succeeded, 5 commits; 30/31 tasks done. Coordinator re-ran `make check`: passes. Acceptance not fully met: task 6.3 (local container run) unticked because the Docker daemon is not running on this machine.
+- 2026-10-26 gate (apply): human chose to run task 6.3 locally; coordinator started Docker Desktop (daemon was down). Phase 2b: sonnet worker for task 6.3 only.
+- 2026-10-26 phase 2b (claude/sonnet, ctx_c8b534e784b1) finished: task 6.3 verified (bak-base created, /health 200, no second backup after recreate), commit 11ecfed. Accepted: no open tasks, `make check` passes. Phase 2 complete.
+- 2026-10-26 phase 3 review analysis started: claude/opus
+- 2026-10-26 phase 3 review analysis (claude/opus, ctx_c5f9212e41cd) finished: succeeded, round 1 in review.md (commit 04eb25d): 0 CRITICAL, 2 MAJOR, 6 MINOR, 3 nits. Accepted (review.md has a new round and is committed).
+- 2026-10-26 gate 2 reached: waiting for human decisions per finding.
+- 2026-10-26 gate 2: human decided R2 = option (a), R5 = ß and ss are the same tag (casefold kept), and accepted the coordinator's recommendations for the rest: fix R1,R3,R4,R7,R8 and nits N1,N3; defer R6 (follow-up for #9); skip N2.
+- 2026-10-26 phase 4 review fixes started: claude/sonnet
+- 2026-10-26 phase 4 review fixes (claude/sonnet, ctx_f6491a588216) finished: succeeded, 4 commits a2ab078..502ae3c; R1-R5, R7, R8 Status: fixed, R6 deferred. NOT accepted at first: coordinator's `make check` failed once on test_timestamps_are_set_on_creation (flaky: created_at and updated_at come from two separate utcnow() calls, microseconds apart; the equality assertion is flaky); reran green. Sent to a small follow-up fix worker.
+- 2026-10-26 phase 4b started: claude/sonnet, fix flaky timestamp test only. Round 2 of phase 3 follows (required because MAJOR findings R1/R2 were fixed; last allowed round).
+- 2026-10-26 phase 4b (claude/sonnet, ctx_31520639420c) finished: succeeded, commit ef3c90e (flake reproduced 17/3000, test made deterministic). Accepted: coordinator `make check` passes.
+- 2026-10-26 phase 3 round 2 started: claude/opus (last allowed round)
+- 2026-10-26 phase 3 round 2 (claude/opus, ctx_4077d99d6648) finished: succeeded, commit 25445af: 0 CRITICAL, 0 MAJOR, 2 MINOR (R9, R10), 4 nits (N4-N7). Round-1 fixes all verified by probes. Accepted.
+- 2026-10-26 gate 2 (round 2) reached: waiting for human decisions on R9, R10, N4-N7. No further review round allowed.
+- 2026-10-26 gate 2 (round 2): human approved the coordinator's recommendations: fix R9 (option a), R10, N4, N5, N6; skip N7.
+- 2026-10-26 phase 4 (round 2 fixes) started: claude/sonnet
+- 2026-10-26 phase 4 round 2 fixes (claude/sonnet, ctx_00e670183c31) finished: succeeded, 4 commits (d4eac53..55861e9); R9, R10 Status: fixed. Accepted: coordinator ran `make check` 3x, all pass (59 tests).
+- 2026-10-26 phase 5 archive & PR started: claude/sonnet
+- 2026-10-26 phase 5 archive & PR (claude/sonnet, ctx_f30b5579bd4d) finished: succeeded, commit 1c08a8f, PR #11 (CI check green). Accepted: change under archive/, coordinator `make check` passes.
+- 2026-10-26 gate 3 reached: waiting for human approval to merge and deploy. Human asked for a workflow retro (/adjust-workflow 3) in the meantime.

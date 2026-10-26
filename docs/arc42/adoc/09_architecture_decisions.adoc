@@ -44,7 +44,7 @@ endif::arc42help[]
 
 *Rationale*: Synchronous DB calls inside async request handlers block the event loop. The migration effort from sync to async SQLAlchemy is low on a new project (different connection URL, `await` on session calls); `TestClient` tests work unchanged.
 
-*Consequence*: Migrations (e.g. with Alembic) will later need a sync-driver workaround or an async-capable `env.py` — see <<section-technical-risks>>.
+*Consequence*: Migrations need a sync-driver workaround or an async-capable `env.py`. Resolved by ADR-8: migrations use the synchronous `sqlite3` driver in a worker thread.
 
 === ADR-2: Composition API instead of Options API
 
@@ -97,3 +97,13 @@ endif::arc42help[]
 *Rationale*: Same-origin delivery removes CORS as a production concern entirely — the alternative (two containers, CORS in production) would need the concrete home-network address in `cors_allowed_origins`, which is unknown at build time, changes with DHCP, and fails silently when wrong. A reverse-proxy split was considered and rejected as unneeded separation, since frontend and backend live in one repository and ship together.
 
 *Consequence*: Frontend-only changes require rebuilding the whole image. CORS becomes development-only configuration. Full decision record at `docs/adr/0007-single-container-deployment.md`.
+
+=== ADR-8: Alembic migrations applied at application start, with a backup copy
+
+*Context*: Issue #3 introduces the first domain model. Since ADR-7 the deployed SQLite file persists in a bind-mounted directory, so schema changes must evolve a database that contains real data instead of recreating it. The Pi has no other backup, and SQLite migrations that recreate tables can fail half-way.
+
+*Decision*: Manage the schema with Alembic. `init_db()` in the FastAPI `lifespan` applies pending migrations before any request is served — the same path for local development, tests, and the container, without an entrypoint script. Migrations use the synchronous `sqlite3` driver in a worker thread and live inside the `app` package (`app/db/migrations/`). Before pending migrations run against an existing file, it is copied to `app.db.bak-<revision>` next to the database (never overwriting an existing copy); a failing backup or migration aborts startup with an error naming the path and the cause. On every start a `PRAGMA foreign_key_check` must also come back empty, otherwise startup aborts.
+
+*Rationale*: One start path cannot drift between environments, and a broken migration makes the instance visibly unavailable instead of running on an outdated schema. Keeping migrations in the `app` package means the existing image layout already ships them. The copy gives the Pi a restore point exactly when the schema is about to change.
+
+*Consequence*: Backup copies accumulate (cleanup is out of scope); rollback means restoring the copy of the release being returned to, renaming it afterwards so the next deployment can write a fresh one, and starting the previous release. Full decision record at `docs/adr/0008-alembic-migrations-at-startup.md`.
