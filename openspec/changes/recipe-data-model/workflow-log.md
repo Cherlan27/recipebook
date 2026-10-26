@@ -14,3 +14,5 @@
 - 2026-10-26 phase 3 review analysis started: claude/opus
 - 2026-10-26 phase 3 review analysis (claude/opus, ctx_c5f9212e41cd) finished: succeeded, round 1 in review.md (commit 04eb25d): 0 CRITICAL, 2 MAJOR, 6 MINOR, 3 nits. Accepted (review.md has a new round and is committed).
 - 2026-10-26 gate 2 reached: waiting for human decisions per finding.
+- 2026-10-26 gate 2: human decided R2 = option (a), R5 = ß and ss are the same tag (casefold kept), and accepted the coordinator's recommendations for the rest: fix R1,R3,R4,R7,R8 and nits N1,N3; defer R6 (follow-up for #9); skip N2.
+- 2026-10-26 phase 4 review fixes started: claude/sonnet
