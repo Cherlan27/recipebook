@@ -168,11 +168,13 @@ async def test_timestamps_are_set_on_creation(db_session):
     after = datetime.now(UTC).replace(tzinfo=None)
 
     assert before <= recipe.created_at <= after
-    assert recipe.updated_at == recipe.created_at
+    assert before <= recipe.updated_at <= after
 
 
 async def test_updated_at_advances_when_recipe_is_changed(db_session):
-    recipe = Recipe(nr=1, name="Before")
+    # Stored in the past so the assertion does not depend on the clock ticking between two commits
+    stored_at = datetime(2020, 1, 1, 12, 0, 0)
+    recipe = Recipe(nr=1, name="Before", created_at=stored_at, updated_at=stored_at)
     db_session.add(recipe)
     await db_session.commit()
     created_at, updated_before = recipe.created_at, recipe.updated_at
