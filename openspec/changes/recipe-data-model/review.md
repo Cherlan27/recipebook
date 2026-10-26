@@ -144,14 +144,14 @@ Options for the human:
 
 Either way, consider adding a spec scenario for the check. Today it exists only in design D7 and ADR-8, and the delta spec says nothing about it.
 
-- Decision: pending
+- Decision: fix (option a: foreign_key_check on every start, neutral error message, spec scenario)
 - Status: open
 
 #### R10 · MINOR · `backend/tests/test_migrate.py:193-202`
 
 **`test_backup_copy_is_flushed_to_disk_before_it_gets_its_final_name` does not test what its name promises.** It only asserts that `os.fsync` was called at least once (`assert fsynced`). It would still pass if the `fsync` moved after `os.replace`, or if it ran on a different file descriptor. ADR-8 and design D5 present "flushed, then renamed" as the guarantee, and ordering is the only part of that guarantee that matters on power loss. Suggested fix: patch `os.replace` as well and record the call order. Assert that `fsync` ran before `replace`, and that at the time of the `fsync` the final name did not exist yet and the `.partial` file did.
 
-- Decision: pending
+- Decision: fix
 - Status: open
 
 ### Nits

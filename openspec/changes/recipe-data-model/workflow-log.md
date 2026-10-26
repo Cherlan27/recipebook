@@ -22,3 +22,5 @@
 - 2026-10-26 phase 3 round 2 started: claude/opus (last allowed round)
 - 2026-10-26 phase 3 round 2 (claude/opus, ctx_4077d99d6648) finished: succeeded, commit 25445af: 0 CRITICAL, 0 MAJOR, 2 MINOR (R9, R10), 4 nits (N4-N7). Round-1 fixes all verified by probes. Accepted.
 - 2026-10-26 gate 2 (round 2) reached: waiting for human decisions on R9, R10, N4-N7. No further review round allowed.
+- 2026-10-26 gate 2 (round 2): human approved the coordinator's recommendations: fix R9 (option a), R10, N4, N5, N6; skip N7.
+- 2026-10-26 phase 4 (round 2 fixes) started: claude/sonnet
