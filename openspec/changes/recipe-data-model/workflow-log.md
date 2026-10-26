@@ -24,3 +24,5 @@
 - 2026-10-26 gate 2 (round 2) reached: waiting for human decisions on R9, R10, N4-N7. No further review round allowed.
 - 2026-10-26 gate 2 (round 2): human approved the coordinator's recommendations: fix R9 (option a), R10, N4, N5, N6; skip N7.
 - 2026-10-26 phase 4 (round 2 fixes) started: claude/sonnet
+- 2026-10-26 phase 4 round 2 fixes (claude/sonnet, ctx_00e670183c31) finished: succeeded, 4 commits (d4eac53..55861e9); R9, R10 Status: fixed. Accepted: coordinator ran `make check` 3x, all pass (59 tests).
+- 2026-10-26 phase 5 archive & PR started: claude/sonnet
