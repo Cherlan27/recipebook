@@ -51,14 +51,20 @@ must not be the agent that wrote the code.
 | 2 | **Apply** | `/opsx:apply`, task by task, red → green → refactor, one commit per task group, until `make check` passes. | `claude` · `sonnet`; small changes: `opencode` · `ollama/qwen3.8:27b` (`/opsx-apply`) |
 | 3 | **Review analysis** | `/review-change` (`.claude/skills/review-change/`): checks the branch against `main` for spec conformance, test evidence, project rules, correctness, security, and deployment impact. Writes numbered findings to `openspec/changes/<change>/review.md`, changes no code. | `claude` · `opus` |
 | | ⏸ **Gate 2** | A human selects which findings to fix. | human |
-| 4 | **Review fixes** | Implements the selected findings (TDD where behavior changes), marks each one `Status: fixed` in `review.md`, re-runs `make check`. A second review round follows only if a CRITICAL or MAJOR finding was fixed; at most two rounds. | `claude` · `sonnet` |
+| 4 | **Review fixes** | Implements the selected findings (TDD where behavior changes), marks each one `Status: fixed` in `review.md`, re-runs `make check`. A second review round follows only if a CRITICAL or MAJOR finding was fixed; at most two rounds. Round 2 is scoped: it checks the fix commits only. | `claude` · `sonnet` |
 | 5 | **Archive & PR** | `/opsx:archive` on the branch, PR against `main` with `Closes #<issue>`. | `claude` · `sonnet` |
 | | ⏸ **Gate 3** | A human approves the merge (merge commit) and the deployment to the Pi; then branch and worktree are cleaned up. | human |
 
 **Verification** – `make check` runs the backend tests, the frontend tests,
 the type-checked frontend build, and `openspec validate --all --strict`. It
-must pass at the end of phases 2 and 4, and GitHub Actions runs it on every
-pull request (`.github/workflows/check.yml`).
+must pass twice in a row at the end of phases 2 and 4 (the second run catches
+flaky tests), and GitHub Actions runs it on every pull request
+(`.github/workflows/check.yml`).
+
+**Style** – workflow artifacts, agent reports, and review findings use simple
+technical English: short sentences, no filler. Reports are at most 5 lines,
+findings at most 6, gate summaries at most 10. The coordinator talks to the
+human in the human's language.
 
 Changes that affect packaging or deployment are additionally verified on the
 Raspberry Pi from the branch (see the deployment section in the
@@ -68,7 +74,9 @@ Raspberry Pi from the branch (see the deployment section in the
 hold: no architecture decision (no ADR), no new dependency, no database
 migration, at most about five tasks, and only one side (backend *or*
 frontend) is touched. If its run leaves verification failing, the apply is
-handed to `sonnet` instead of retried locally.
+handed to `sonnet` instead of retried locally. The same happens if the local
+worker has made no commit and ticked no task after 10 minutes. (Issue #3: the
+local model spent 17 minutes planning a non-small change and was stopped.)
 
 **Archive before merge** – `/opsx:archive` syncs the delta specs into
 `openspec/specs/` and moves the change to `openspec/changes/archive/` on the
@@ -111,7 +119,7 @@ by `openspec init`/`openspec update` and are overwritten on every update — do
 not edit them. Project-specific behavior goes into
 [`openspec/config.yaml`](openspec/config.yaml): `rules` per artifact
 (proposal, specs, design, tasks) and `operations.*.guidance` for apply and
-archive. Quote YAML entries that contain `": "` — otherwise OpenSpec cannot
+archive. Quote YAML entries that contain `": "` or `" #"` (the rest of the line is dropped as a comment) — otherwise OpenSpec cannot
 parse the file and silently ignores all of it. Check with
 `openspec instructions tasks --change <name> --json` that the rules arrive.
 

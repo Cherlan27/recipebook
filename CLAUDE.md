@@ -59,18 +59,18 @@ Routes are added to `app/main.py` via `app.include_router(...)`; new endpoint mo
 
 ## Workflow
 
-The full workflow is in `CONTRIBUTING.md`. The rules agents most often need:
+Full workflow: `CONTRIBUTING.md`. Rules agents need most:
 
-- One issue = one OpenSpec change = one worktree and branch (`issue-<number>-<short-name>`) = one PR with `Closes #<issue>`.
-- Do not develop in the main checkout; it stays on `main`. Work happens in a per-issue worktree branched from `origin/main`.
-- Each phase is a separate agent session with a fixed model: propose `opus`, apply `sonnet` (small changes: `opencode` with `ollama/qwen3.8:27b`), review analysis `opus`, review fixes `sonnet`, archive & PR `sonnet`. A `sonnet` coordinator drives the phases with `/orchestrate-issue` and stops for a human after propose, after review analysis, and before merge/deploy. Do only the phase you were started for.
-- After an issue is shipped, `/adjust-workflow <issue>` runs a retrospective and records approved workflow changes in `docs/workflow-retros.md`.
-- A phase is done only when `make check` passes; tick a task only after its test or command passed in your session.
-- Review analysis uses `/review-change`, writes findings to `openspec/changes/<change>/review.md`, and changes no code; review fixes implement only the findings a human selected.
-- A fresh worktree needs `uv sync --directory backend && npm ci --prefix frontend` before tests or dev servers run.
-- Run `/opsx:archive` on the branch *before* merging, so `main` never holds a finished-but-unarchived change.
-- Dev servers bind fixed ports (`8000`, `5173`) shared across worktrees — do not start them if another worktree already runs them (`orca ports --json`).
-- Never edit the generated OpenSpec skills/commands in `.claude/` or `.opencode/` (they are overwritten by `openspec update`); put project rules into `openspec/config.yaml`.
+- One issue = one OpenSpec change = one worktree and branch (`issue-<number>-<short-name>`) = one PR with `Closes #<issue>`. Never develop in the main checkout.
+- Each phase is its own agent session with a fixed model (propose `opus`, apply `sonnet`, review `opus`, fixes `sonnet`, archive & PR `sonnet`; local `qwen` only for small changes). A `sonnet` coordinator (`/orchestrate-issue`) stops for a human after propose, after review, and before merge/deploy. Do only your phase.
+- A phase is done when `make check` passes (twice in a row after apply and fixes). Tick a task only after its test or command passed in your session. Tests must be deterministic (no equality of two clock reads).
+- Review (`/review-change`) writes findings to `openspec/changes/<change>/review.md` and changes no code; fixes implement only findings with `Decision: fix`.
+- Run `/opsx:archive` on the branch before merging.
+- A fresh worktree needs `uv sync --directory backend && npm ci --prefix frontend`.
+- Dev servers use fixed ports `8000` and `5173`; do not start them if another worktree has them (`orca ports --json`).
+- Never edit generated OpenSpec skills/commands in `.claude/` or `.opencode/`; put project rules in `openspec/config.yaml`.
+- Style: simple technical English, short sentences, no filler. Reports at most 5 lines.
+- After a shipped issue, `/adjust-workflow <issue>` records workflow changes in `docs/workflow-retros.md`.
 
 ## Documentation
 

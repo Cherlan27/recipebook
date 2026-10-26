@@ -5,149 +5,130 @@ description: Review the current branch's OpenSpec change before it is archived a
 
 # Review a change
 
-You are the reviewer, not the author. Find the problems that matter before this
-branch is merged, prove each one, and record them so a human can decide what
-gets fixed. **Do not modify source code, tests, specs, or docs.** The only file
-you write is `review.md`.
+You are the reviewer, not the author. Find the problems that matter before merge,
+prove each one, and record them so a human can decide. **Do not modify source,
+tests, specs, or docs.** The only file you write is `review.md`.
 
-Input: an optional base ref (default `origin/main`) and an optional change name.
+Input: optional base ref (default `origin/main`), optional change name, and the
+round number (round 2 is scoped, see below).
 
-## 1. Establish scope
+Style: simple technical English, short sentences. No filler.
+
+## 1. Scope
 
 ```bash
 git fetch -q origin
 git log --oneline origin/main...HEAD
 git diff --stat origin/main...HEAD
-git diff origin/main...HEAD
 ```
 
-Find the active change: the directory under `openspec/changes/` (not `archive/`)
-that this branch adds or modifies, or the name you were given. If there is none,
-review the diff anyway, skip the spec checks, and report in chat instead of
-writing `review.md`.
+Find the active change under `openspec/changes/` (not `archive/`) or use the name
+you were given. Without a change, review the diff, skip spec checks, and report
+in chat instead of writing `review.md`.
 
-## 2. Understand the intent before judging the code
+**Round 2 is scoped:** review only the commits made since round 1
+(`git diff <round-1-head>..HEAD`). First check that each `Status: fixed` finding is
+really resolved (re-run its probe). Then look for new problems in the fix diff and
+in docs changed with it. Do not re-read the whole change and do not re-raise
+`defer`red or skipped findings.
 
-Read, in this order:
+## 2. Understand the intent
 
-1. `CLAUDE.md` and `openspec/config.yaml` — project rules.
-2. The change: `proposal.md`, `design.md`, `tasks.md`, and every delta spec under `specs/`.
-3. The GitHub issue named in `Closes #<n>` (`gh issue view <n>`) — its acceptance criteria and Definition of Done.
-4. Any ADR the change adds or references in `docs/adr/`.
+Read in this order, and only what you need: `CLAUDE.md`, `openspec/config.yaml`;
+the change (`proposal.md`, `tasks.md`, delta specs, and `design.md` for decisions
+you question); the issue named in `Closes #<n>` (`gh issue view <n>`); ADRs the
+change adds.
 
-## 3. Read the code in context
+## 3. Read the code
 
-For every changed file, read the **whole file**, not just the hunk. Also read
-the tests that exercise it and the direct callers of anything whose signature
-or behavior changed.
+Read the diff first. Read a whole file only where you suspect a problem or the
+hunk lacks context. Read the tests for changed behavior and callers of changed
+signatures.
 
-## 4. Run the verification
+## 4. Verify
 
 ```bash
 make check
 ```
 
-It runs the backend tests, the frontend tests, the type-checked build, and
-`openspec validate --all --strict`. A failure is a CRITICAL finding; quote the
-relevant output.
+A failure is CRITICAL; quote the relevant output.
 
-## 5. Review checklist
+## 5. Checklist
 
-**A. Spec conformance and test evidence** — the most important section.
-
-- Every scenario of every ADDED/MODIFIED requirement is implemented.
-- Every scenario has a test that would fail without the implementation. Name the test; a scenario without one is MAJOR.
-- Nothing is implemented that no spec, task, or design decision asks for.
-- Every ticked task in `tasks.md` is actually done. A false tick is MAJOR.
-- The issue's acceptance criteria and Definition of Done are covered or explicitly deferred.
+**A. Spec and tests (most important)**
+- Every scenario is implemented and has a test that fails without the implementation. Name the test. A scenario without one is MAJOR.
+- Nothing is built that no spec, task, or design decision asks for.
+- Every ticked task is really done. A false tick is MAJOR.
+- Acceptance criteria and DoD of the issue are covered or explicitly deferred.
 
 **B. Project rules**
+- Architecture decision: ADR "Accepted" plus matching `docs/arc42/adoc/` updates.
+- English artifacts and comments. Backend layering as in `CLAUDE.md`. Frontend uses `<script setup lang="ts">`.
+- New dependencies justified; lock files updated.
 
-- An architecture decision has an ADR with status "Accepted" and matching updates in `docs/arc42/adoc/`.
-- Artifacts, docs, and code comments are in English.
-- Backend layering: routers in `app/api/routes/`, settings in `app/core/config.py` with the `RECIPEBOOK_` prefix, models in `app/models/`.
-- Frontend: Composition API with `<script setup lang="ts">`; no state library without a feature that needs shared state.
-- New dependencies are justified and the lock files (`backend/uv.lock`, `frontend/package-lock.json`) are updated.
+**C. Correctness**
+- Logic, edge cases, wrong assumptions. Boundary errors handled; no swallowed exceptions.
+- Async: no blocking I/O in async paths.
+- Database: constraints the specs imply; every schema change has a migration that works on a database with data.
+- Tests must not be flaky: no equality between two clock reads, no sleeps for ordering.
 
-**C. Correctness and robustness**
+**D. Security**: injection, path traversal, unsafe file handling, secrets, widened CORS, missing auth.
 
-- Logic, edge cases, wrong assumptions, off-by-one errors.
-- Errors at system boundaries (request input, filesystem, database) are handled; no swallowed exceptions or silent failures.
-- Async code: no blocking I/O in async paths; sessions and connections are closed.
-- Database: constraints and indexes the specs imply, no N+1 queries, every schema change comes with a migration that also works on a database holding data.
+**E. Deployment**: breaking API/config/schema changes; `Dockerfile` and `docker-compose.yml` still build for `linux/amd64` and `linux/arm64`; persistent data is on the mounted volume; new env vars are in the README.
 
-**D. Security**
-
-- Injection (SQL, command, path traversal), unsafe file handling, secrets in code or config, CORS widened beyond the development origin, missing auth where a spec requires it.
-
-**E. Contracts and deployment**
-
-- Breaking changes to API responses, routes, config variables, or the schema.
-- `Dockerfile` and `docker-compose.yml`: still builds for `linux/amd64` and `linux/arm64`; new persistent data lives on the mounted volume; new environment variables are documented in the README.
-
-**F. Leftovers**
-
-- Debug output, commented-out code, unused imports, TODOs without an issue.
+**F. Leftovers**: debug output, commented-out code, unused imports, TODOs without an issue.
 
 ## 6. Verify before you report
 
-For each candidate finding, go back to the code and confirm it. Drop anything
-you cannot point to with a file and line, anything that is an intentional
-decision recorded in the design or an ADR, and pure style preferences. If a
-finding depends on an assumption, state the assumption.
+Go back to the code for each candidate. Drop it if you cannot name file and line,
+if the design or an ADR records it as intentional, or if it is only taste.
+State assumptions.
 
 Severity:
+- **CRITICAL**: failing verification, data loss, security hole, contradicts a spec.
+- **MAJOR**: scenario without implementation or test, false tick, violated project rule, likely bug in a realistic case.
+- **MINOR**: worth fixing, does not block merge. **Report a MINOR only with a concrete failure scenario** ("when X, then Y"). Otherwise drop it.
+- **Nits**: at most 3, and only if they cost nothing to fix. Nits get no decision line.
 
-- **CRITICAL** — failing verification, data loss, security hole, or behavior that contradicts a spec. Must be fixed before merge.
-- **MAJOR** — a scenario without implementation or test, a false task tick, a violated project rule, or a likely bug in a realistic edge case.
-- **MINOR** — robustness or maintainability problems that are worth fixing but do not block the merge.
+## 7. Write `review.md`
 
-## 7. Write `openspec/changes/<change>/review.md`
-
-If the file already exists, append a new `## Round <n>` section instead of
-overwriting earlier rounds. Use this structure:
+If the file exists, append `## Round <n>`; never overwrite. Keep it short: the
+summary has at most 3 sentences, each finding at most 6 lines (what is wrong,
+the failure, the fix). Probe scripts go in one line each, not as long tables.
 
 ```markdown
 # Review: <change-name>
 
 ## Round 1
 
-Base `origin/main` @ <short-sha> · Head <short-sha> · <YYYY-MM-DD> · Reviewer: <model>
+Base `origin/main` @ <sha> · Head <sha> · <YYYY-MM-DD> · Reviewer: <model>
 
 ### Summary
-
-One paragraph: what the change does and your overall assessment.
+<= 3 sentences.
 
 ### Verification
-
-| `make check` step | Result |
+| step | result |
 |---|---|
-| `uv run pytest` | ✅ 12 passed |
-| `npm test` | ✅ 3 passed |
-| `npm run build` | ✅ |
-| `openspec validate --all --strict` | ✅ |
+| `make check` | ✅ <counts> |
 
 ### Findings
 
-#### R1 · MAJOR · `backend/app/api/routes/recipes.py:42`
+#### R1 · MAJOR · `path:line`
+What is wrong, when it fails, suggested fix. If the fix needs a human choice, list the options.
 
-What is wrong and why it matters. Suggested fix, if it is not obvious.
-
+- Recommendation: fix | skip | defer — <short reason>
 - Decision: pending
 - Status: open
 
 ### Nits
-
-- N1 · `path:line` — short note.
+- N1 · `path:line` — note.
 ```
 
-Number findings `R1`, `R2`, … continuing across rounds. Leave `Decision:
-pending` and `Status: open`: the human sets the decision (fix / skip / defer)
-at Gate 2, and the fixer sets the status. Omit empty sections.
+Number findings `R1`, `R2`, … across rounds. Give every finding a
+`Recommendation:` (default for MINOR without data or safety impact: skip or defer).
+The human sets `Decision:` at Gate 2; the fixer sets `Status:`.
+Commit only `review.md` as `docs: review round <n> of <change-name>`.
 
-Commit only `review.md`, with the message `docs: review round <n> of <change-name>`.
+## 8. Report
 
-## 8. Report in chat
-
-Finish with the counts per severity, the IDs of all CRITICAL and MAJOR
-findings, and the path of `review.md`.
+At most 5 lines: counts per severity, IDs of CRITICAL and MAJOR findings, path of `review.md`.
