@@ -25,10 +25,10 @@ Mechanics are tested against small fixture script directories under `backend/tes
 
 ## 3. Migrations at application start
 
-- [ ] 3.1 RED: test for scenario *Migration raises an error* at the application level — with `settings.database_path` pointing at a temporary file and the script location pointing at the failing fixture, `with TestClient(create_app())` raises an error containing "Database migration failed" and the cause
-- [ ] 3.2 GREEN: `init_db()` keeps creating the directory, then calls `run_migrations` via `asyncio.to_thread` instead of opening a bare connection (D2, D3)
-- [ ] 3.3 Confirm the existing tests in `tests/test_db_session.py` (missing directory is created; unusable path is named in the error) and the other test modules still pass unchanged; adjust only if the directory test now needs a migrated database
-- [ ] 3.4 REFACTOR: remove code in `app/db/session.py` made dead by 3.2, keeping `uv run pytest` green
+- [x] 3.1 RED: test for scenario *Migration raises an error* at the application level — with `settings.database_path` pointing at a temporary file and the script location pointing at the failing fixture, `with TestClient(create_app())` raises an error containing "Database migration failed" and the cause
+- [x] 3.2 GREEN: `init_db()` keeps creating the directory, then calls `run_migrations` via `asyncio.to_thread` instead of opening a bare connection (D2, D3)
+- [x] 3.3 Confirm the existing tests in `tests/test_db_session.py` (missing directory is created; unusable path is named in the error) and the other test modules still pass unchanged; adjust only if the directory test now needs a migrated database
+- [x] 3.4 REFACTOR: remove code in `app/db/session.py` made dead by 3.2, keeping `uv run pytest` green
 
 ## 4. Recipe data model and first revision
 

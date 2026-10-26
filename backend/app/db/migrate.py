@@ -36,7 +36,7 @@ def current_revision(database_path: Path) -> str | None:
 
 def run_migrations(
     database_path: Path | None = None,
-    script_location: Path = DEFAULT_SCRIPT_LOCATION,
+    script_location: Path | None = None,
 ) -> None:
     """Upgrade the database to the latest revision (synchronous; see ADR-8).
 
@@ -44,7 +44,7 @@ def run_migrations(
     ``<name>.bak-<revision>`` first, unless that copy already exists.
     """
     database_path = database_path or settings.database_path
-    config = build_config(database_path, script_location)
+    config = build_config(database_path, script_location or DEFAULT_SCRIPT_LOCATION)
 
     # Must be decided before any connection is opened: connecting creates the file.
     existed = database_path.exists()
