@@ -47,6 +47,7 @@ Applies to `make backend`, tests that start the application, and the container a
 . `init_db()` creates the database directory if needed. If that fails, startup aborts with an error naming the path.
 . In a worker thread, the migration step notes whether the database file already exists, then reads its current schema revision (`base` if it has none) and compares it with the latest revision in `app/db/migrations/versions/`.
 . If the file existed and migrations are pending, the file is copied to `app.db.bak-<revision>` in the same directory (skipped with a logged warning if that copy already exists). The copy is written under a temporary name and renamed once complete. If the copy fails, startup aborts and no migration runs. The revisions involved and each copy written or skipped are logged.
-. Alembic applies the pending revisions in order. On a new database it creates the file and the complete schema; on an up-to-date database it does nothing. Afterwards `PRAGMA foreign_key_check` must report no violations.
+. Alembic applies the pending revisions in order. On a new database it creates the file and the complete schema; on an up-to-date database it does nothing.
+. On every start, migrated or not, `PRAGMA foreign_key_check` must report no violations; otherwise startup aborts with "Database has foreign key violations: <rows>" and the instance stays down until a backup copy is restored or the rows are repaired.
 . If any migration fails, startup aborts with "Database migration failed for <path>: <cause>" and Uvicorn exits non-zero — in the container, the instance never becomes healthy.
 . Only then does Uvicorn accept requests, e.g. `GET /health`.

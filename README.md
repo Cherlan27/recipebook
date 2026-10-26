@@ -134,18 +134,37 @@ are logged (`docker compose logs`). The `app.db.bak-base` left by the first
 start after this feature was introduced is a copy of the empty database from
 before it; it can be deleted once you have checked that start in the logs.
 
+On every start, also when nothing was migrated, the application checks the
+database for rows that point at rows that no longer exist (`PRAGMA
+foreign_key_check`). If it finds any, it does not start and the log says
+`Database has foreign key violations: ...` followed by the offending rows. A
+migration can cause this, and so can a delete made directly in the database
+with the `sqlite3` tool, which does not enforce foreign keys by default. Either
+repair the listed rows or restore a copy as described below; the container keeps
+failing its start until one of the two is done.
+
 To restore a copy after a failed or unwanted migration:
 
 1. Stop the container (`docker compose down`).
 2. Pick the copy named after the revision of the release you go back to. If the
    failed deployment wrote more than one copy, that is the oldest of them (a
    later start may have copied a half-migrated file). The revision of a release
-   is the newest file in its `backend/app/db/migrations/versions/`; for a copy,
-   `SELECT version_num FROM alembic_version` shows it.
-3. Replace `data/app.db` with that copy, then **rename the copy** (for example
-   to `app.db.bak-<revision>.restored`). Otherwise its name stays taken, the next
-   deployment skips its backup, and the data entered in between is not copied
-   before the migration runs again.
+   is the newest file in its `backend/app/db/migrations/versions/`. For a copy,
+   this one-liner (the `sqlite3` command-line tool is not installed on the Pi or
+   in the image) prints its revision:
+
+   ```
+   python3 -c "import sqlite3, sys; print(sqlite3.connect('file:' + sys.argv[1] + '?mode=ro', uri=True).execute('SELECT version_num FROM alembic_version').fetchone())" data/app.db.bak-<revision>
+   ```
+
+   A `bak-base` copy was never migrated and has no `alembic_version` table, so
+   the command fails with `no such table: alembic_version`; that is the answer
+   (`base`).
+3. Replace `data/app.db` with that copy, then **rename the copy** with a unique
+   suffix, for example `app.db.bak-<revision>.restored-<YYYYMMDD>`. Otherwise
+   its name stays taken, the next deployment skips its backup, and the data
+   entered in between is not copied before the migration runs again. The date
+   keeps a repeated restore from replacing an earlier renamed copy.
 4. Check out the previous release and start it again with
    `docker compose up -d --build`.
 

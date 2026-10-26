@@ -32,7 +32,7 @@ endif::arc42help[]
 
 *Impact*: The instance does not start (ADR-8 aborts startup on a failed migration); the database file may be inconsistent.
 
-*Mitigation*: Before pending migrations run, the existing file is copied to `app.db.bak-<revision>`, and an existing copy is never overwritten, so the last good state survives repeated failed starts. The copy is written under a temporary name, flushed, and then renamed, so an interrupted copy never counts as a backup, and a skipped backup is logged as a warning. Restore procedure: stop the instance, replace `app.db` with the copy named after the revision of the release you go back to (the oldest copy the failed deployment wrote), rename that copy (e.g. to `app.db.bak-<revision>.restored`) so the name is free for the next deployment, then start the previous release (README).
+*Mitigation*: Before pending migrations run, the existing file is copied to `app.db.bak-<revision>`, and an existing copy is never overwritten, so the last good state survives repeated failed starts. The copy is written under a temporary name, flushed, and then renamed, so an interrupted copy never counts as a backup, and a skipped backup is logged as a warning. Restore procedure: stop the instance, replace `app.db` with the copy named after the revision of the release you go back to (the oldest copy the failed deployment wrote), rename that copy (to `app.db.bak-<revision>.restored-<YYYYMMDD>`) so the name is free for the next deployment, then start the previous release (README).
 
 === Foreign keys during batch migrations
 
@@ -40,7 +40,7 @@ endif::arc42help[]
 
 *Impact*: Silent loss of all recipe–tag links during an otherwise successful migration.
 
-*Mitigation*: Foreign-key enforcement is enabled only on the application's connections; the migration connection switches it off explicitly (documented in `env.py`, covered by a test), and `PRAGMA foreign_key_check` after the upgrade fails startup if a migration left dangling links. Each new revision that alters existing tables gets a test that upgrades a database with data in place.
+*Mitigation*: Foreign-key enforcement is enabled only on the application's connections; the migration connection switches it off explicitly (documented in `env.py`, covered by a test), and `PRAGMA foreign_key_check` on every start fails startup if dangling links exist, whether a migration or a direct edit left them; because it also runs on the automatic restart, the instance stays down until a backup copy is restored or the rows are repaired. Each new revision that alters existing tables gets a test that upgrades a database with data in place.
 
 === Accumulating backup copies
 

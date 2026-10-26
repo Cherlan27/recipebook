@@ -91,6 +91,27 @@ If applying a migration fails, the application SHALL NOT start serving requests.
 - **AND** the error message states that a database migration failed
 - **AND** the error message contains the underlying cause reported by the failing migration
 
+### Requirement: A database with dangling foreign keys prevents startup
+On every start, after pending migrations have been applied (or found absent), the application SHALL verify that no row in the database refers to a row that does not exist, and if one does, it SHALL NOT start serving requests. Startup SHALL fail with an error that states that the database has foreign key violations, names the offending tables and rows, and names the next step (restore a backup copy or repair the rows); the process SHALL exit with a non-zero status. The error SHALL NOT attribute the violations to the migration, because they may have been caused by an edit outside the application. The check SHALL run on every start, so that an automatic restart cannot bring up an instance whose previous start was refused.
+
+#### Scenario: A migration leaves a dangling row
+- **GIVEN** a pending migration that completes but leaves a row whose foreign key points at no existing row
+- **WHEN** the application starts
+- **THEN** startup fails before any request is served
+- **AND** the error message states that the database has foreign key violations and names the offending table
+
+#### Scenario: A dangling row is still present at the next start
+- **GIVEN** a database at the latest schema version that contains a row whose foreign key points at no existing row
+- **WHEN** the application starts again
+- **THEN** no migration is applied
+- **AND** startup fails again with the same kind of error
+
+#### Scenario: A row was orphaned outside the application
+- **GIVEN** a database at the latest schema version in which a parent row was deleted directly in the database with foreign key enforcement off, leaving a dangling link row
+- **WHEN** the application starts
+- **THEN** startup fails with an error that states that the database has foreign key violations
+- **AND** the error message does not state that a database migration failed
+
 ### Requirement: Deployed instance migrates its database on container start
 The container deployment SHALL apply pending migrations to the database in the mounted data directory when the container starts, and the backup copy SHALL be written to that same mounted directory.
 
