@@ -34,22 +34,22 @@ Mechanics are tested against small fixture script directories under `backend/tes
 
 Model tests use a `conftest.py` fixture that runs the real migrations on a temporary database and yields an `AsyncSession` from an engine with the foreign-key listener (D11). Constraint tests that must bypass the ORM use `text(...)`.
 
-- [ ] 4.1 Add the constraint `naming_convention` to `Base.metadata` in `app/db/base.py` (D9)
-- [ ] 4.2 RED: test for scenario *Several recipes with tags are stored and read back* — at least three recipes with all fields, multi-line `ingredients`/`steps`, and tags
-- [ ] 4.3 GREEN: add `Recipe`, `KidFriendly`, and `recipe_tags` in `app/models/recipe.py` and `Tag` in `app/models/tag.py` with the columns and constraints from D8–D10; import them in `app/models/__init__.py` and in `env.py`; generate the first revision with `uv run alembic revision --autogenerate -m "create recipes and tags"`, review it (CHECK constraints, `ON DELETE CASCADE`, composite primary key, server defaults), and add the conftest fixture
-- [ ] 4.4 RED then GREEN: test for scenario *Migrated database matches the application's data model* — `compare_metadata` against an empty migrated database reports no differences
-- [ ] 4.5 RED then GREEN: tests for scenarios *Recipe with only the required fields*, *Recipe without a number*, and *Recipe without a name*
-- [ ] 4.6 RED then GREEN: test for scenario *Duplicate recipe number* (direct insert rejected, existing recipe unchanged)
-- [ ] 4.7 RED then GREEN: tests for scenarios *Effort within range* and *Effort out of range* (0 and 4 via direct SQL)
-- [ ] 4.8 RED then GREEN: tests for scenarios *Defined value* and *Undefined value* for `kid_friendly` (`maybe` via direct SQL; stored values are the lowercase enum values)
-- [ ] 4.9 RED then GREEN: tests for scenarios *Recipe is created* and *Recipe is changed* (timestamps set, `updated_at` advances, `created_at` unchanged)
-- [ ] 4.10 RED then GREEN: tests for scenarios *Tag name with surrounding whitespace*, *Same name in different case*, *Same name in different case with umlauts*, and *Empty tag name* (`name_key` via `casefold()`, `ValueError` for empty names — D8)
-- [ ] 4.11 RED then GREEN: tests for scenarios *One tag on several recipes* and *Same tag attached twice to one recipe* (direct insert of a duplicate link rejected)
-- [ ] 4.12 RED: tests for scenarios *Recipe is deleted*, *Recipe is deleted directly in the database*, and *Tag is deleted*
-- [ ] 4.13 GREEN: enable `PRAGMA foreign_keys=ON` through a `connect` listener on the application engine in `app/db/session.py`, shared with the test fixture; `passive_deletes=True` on the relationship (D7)
-- [ ] 4.14 RED then GREEN: test for scenario *Restart of an up-to-date database with stored recipes* — recipes, tags, and links are unchanged after running the migrations again
-- [ ] 4.15 RED then GREEN: test for scenario *Application starts against a database with pending migrations and existing data* against the real revisions — an unversioned database file with an unrelated table and rows keeps those rows, reaches head, and leaves `<name>.bak-base`
-- [ ] 4.16 REFACTOR: tidy models, fixture, and tests while `uv run pytest` stays green
+- [x] 4.1 Add the constraint `naming_convention` to `Base.metadata` in `app/db/base.py` (D9)
+- [x] 4.2 RED: test for scenario *Several recipes with tags are stored and read back* — at least three recipes with all fields, multi-line `ingredients`/`steps`, and tags
+- [x] 4.3 GREEN: add `Recipe`, `KidFriendly`, and `recipe_tags` in `app/models/recipe.py` and `Tag` in `app/models/tag.py` with the columns and constraints from D8–D10; import them in `app/models/__init__.py` and in `env.py`; generate the first revision with `uv run alembic revision --autogenerate -m "create recipes and tags"`, review it (CHECK constraints, `ON DELETE CASCADE`, composite primary key, server defaults), and add the conftest fixture
+- [x] 4.4 RED then GREEN: test for scenario *Migrated database matches the application's data model* — `compare_metadata` against an empty migrated database reports no differences
+- [x] 4.5 RED then GREEN: tests for scenarios *Recipe with only the required fields*, *Recipe without a number*, and *Recipe without a name*
+- [x] 4.6 RED then GREEN: test for scenario *Duplicate recipe number* (direct insert rejected, existing recipe unchanged)
+- [x] 4.7 RED then GREEN: tests for scenarios *Effort within range* and *Effort out of range* (0 and 4 via direct SQL)
+- [x] 4.8 RED then GREEN: tests for scenarios *Defined value* and *Undefined value* for `kid_friendly` (`maybe` via direct SQL; stored values are the lowercase enum values)
+- [x] 4.9 RED then GREEN: tests for scenarios *Recipe is created* and *Recipe is changed* (timestamps set, `updated_at` advances, `created_at` unchanged)
+- [x] 4.10 RED then GREEN: tests for scenarios *Tag name with surrounding whitespace*, *Same name in different case*, *Same name in different case with umlauts*, and *Empty tag name* (`name_key` via `casefold()`, `ValueError` for empty names — D8)
+- [x] 4.11 RED then GREEN: tests for scenarios *One tag on several recipes* and *Same tag attached twice to one recipe* (direct insert of a duplicate link rejected)
+- [x] 4.12 RED: tests for scenarios *Recipe is deleted*, *Recipe is deleted directly in the database*, and *Tag is deleted*
+- [x] 4.13 GREEN: enable `PRAGMA foreign_keys=ON` through a `connect` listener on the application engine in `app/db/session.py`, shared with the test fixture; `passive_deletes=True` on the relationship (D7)
+- [x] 4.14 RED then GREEN: test for scenario *Restart of an up-to-date database with stored recipes* — recipes, tags, and links are unchanged after running the migrations again
+- [x] 4.15 RED then GREEN: test for scenario *Application starts against a database with pending migrations and existing data* against the real revisions — an unversioned database file with an unrelated table and rows keeps those rows, reaches head, and leaves `<name>.bak-base`
+- [x] 4.16 REFACTOR: tidy models, fixture, and tests while `uv run pytest` stays green
 
 ## 5. Developer and deployment documentation
 
