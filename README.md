@@ -127,13 +127,27 @@ copies the file to `data/app.db.bak-<revision>`, where `<revision>` is the
 schema version the database had before the migration (`base` if it had none,
 e.g. `app.db.bak-base` on the first start after this feature was introduced).
 Copies are only written when migrations are pending, an existing copy is never
-overwritten, and they are never cleaned up automatically — delete old ones by
-hand when you no longer need them.
+overwritten (the log then says `Database backup skipped` and names the file),
+and they are never cleaned up automatically — delete old ones by hand when you
+no longer need them. The migration progress and each copy written or skipped
+are logged (`docker compose logs`). The `app.db.bak-base` left by the first
+start after this feature was introduced is a copy of the empty database from
+before it; it can be deleted once you have checked that start in the logs.
 
-To restore a copy after a failed or unwanted migration: stop the container
-(`docker compose down`), replace `data/app.db` with the matching
-`data/app.db.bak-<revision>`, check out the previous release, and start it
-again with `docker compose up -d --build`.
+To restore a copy after a failed or unwanted migration:
+
+1. Stop the container (`docker compose down`).
+2. Pick the copy named after the revision of the release you go back to. If the
+   failed deployment wrote more than one copy, that is the oldest of them (a
+   later start may have copied a half-migrated file). The revision of a release
+   is the newest file in its `backend/app/db/migrations/versions/`; for a copy,
+   `SELECT version_num FROM alembic_version` shows it.
+3. Replace `data/app.db` with that copy, then **rename the copy** (for example
+   to `app.db.bak-<revision>.restored`). Otherwise its name stays taken, the next
+   deployment skips its backup, and the data entered in between is not copied
+   before the migration runs again.
+4. Check out the previous release and start it again with
+   `docker compose up -d --build`.
 
 ### What persists, and what doesn't
 

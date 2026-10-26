@@ -106,4 +106,4 @@ endif::arc42help[]
 
 *Rationale*: One start path cannot drift between environments, and a broken migration makes the instance visibly unavailable instead of running on an outdated schema. Keeping migrations in the `app` package means the existing image layout already ships them. The copy gives the Pi a restore point exactly when the schema is about to change.
 
-*Consequence*: Backup copies accumulate (cleanup is out of scope); rollback means restoring a copy and starting the previous release. Full decision record at `docs/adr/0008-alembic-migrations-at-startup.md`.
+*Consequence*: Backup copies accumulate (cleanup is out of scope); rollback means restoring the copy of the release being returned to, renaming it afterwards so the next deployment can write a fresh one, and starting the previous release. Full decision record at `docs/adr/0008-alembic-migrations-at-startup.md`.

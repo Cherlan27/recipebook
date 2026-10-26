@@ -132,7 +132,7 @@ updated_at    timestamp (UTC)
 |===
 | **Table** | **Rules**
 | `recipes` | `nr` is unique and required, `name` is required; `effort` is limited to 1–3 and `kid_friendly` to `yes` / `with_adjustments` / `no` by CHECK constraints; `ingredients` and `steps` are free text with one line per entry; `created_at` / `updated_at` are set by the application (UTC) with a database default as fallback.
-| `tags` | Free-form, no fixed list. The name is trimmed and stored in the spelling of its first creation; `name_key` (the casefolded name) carries the unique constraint, so uniqueness ignores case including umlauts.
+| `tags` | Free-form, no fixed list. The name is trimmed and stored in the spelling of its first creation; `name_key` (the casefolded name) carries the unique constraint, so uniqueness ignores case including umlauts. Names are normalized to Unicode NFC first; `casefold()` makes `ß` and `ss` equal.
 | `recipe_tags` | n:m link with a composite primary key (a tag is attached to a recipe at most once). Deleting a recipe or a tag removes only the links, enforced by `ON DELETE CASCADE`.
 |===
 
