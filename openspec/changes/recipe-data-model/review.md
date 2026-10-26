@@ -36,7 +36,7 @@ Extra probes, run as throwaway scripts (since deleted) against this branch's cod
 Suggested fix: copy to a temporary name in the same directory (e.g. `<name>.bak-<revision>.partial`), `fsync` it, then `os.replace` it onto the final name, and delete the temporary file on failure. Only a complete copy ever has the final name, so the "never overwrite" rule (D5) stays as it is. Add a test where `copy2` writes part of the file and then raises, followed by a successful second run that must leave a byte-identical copy.
 
 - Decision: fix
-- Status: open
+- Status: fixed
 
 #### R2 · MAJOR · `backend/app/db/migrate.py:69-70`, `README.md:133-136`
 
@@ -49,28 +49,28 @@ This needs a human decision because the spec mandates the skip. Options:
 Whichever option is chosen, also log a warning naming the existing copy when the backup is skipped (see R3).
 
 - Decision: fix (option a: change restore instructions to rename the old copy after restoring, plus the warning log from R3)
-- Status: open
+- Status: fixed
 
 #### R3 · MINOR · `backend/app/db/migrate.py:55-57`, `backend/app/db/migrations/env.py:12-15`
 
 **Successful migrations and backup copies leave no trace in `docker compose logs`.** `env.py` rightly skips `fileConfig` under Uvicorn, but Uvicorn only configures its own `uvicorn.*` loggers. Alembic's INFO lines ("Running upgrade … -> aee96801fd95") therefore go nowhere, and `migrate.py` logs nothing itself (probe: no output). On the Pi the operator cannot tell from the logs whether a migration ran, from which revision, or which backup file was written or skipped. That information is needed to pick the right copy (R4) and to notice R1/R2. The Gate 3 check can only confirm that there was "no migration error" in the logs. Suggested fix: log at WARNING or INFO through a logger that reaches the console (e.g. `uvicorn.error`, or a module logger with a handler) for: current revision → head, backup written (path), backup skipped because one exists (path).
 
 - Decision: fix
-- Status: open
+- Status: fixed
 
 #### R4 · MINOR · `README.md:133-136`, `docs/adr/0008-alembic-migrations-at-startup.md` (Consequences)
 
 **"Restore the matching copy" is ambiguous once a release contains more than one revision.** Alembic commits each revision separately on SQLite, so a failure in revision N+2 leaves the database stamped at N+1, possibly with part of N+2's DDL already applied. The automatic restart then writes `app.db.bak-<N+1>` from that partly migrated file, next to the real pre-deploy copy `app.db.bak-<N>`. The fixture probe shows the same thing with `bak-base` plus `bak-r1`. An operator choosing "the matching" or the newest copy restores the wrong state. Today there is only one revision, so this is guidance for the future, but the README is the operational runbook for the Pi. Suggested wording: restore the copy named after the revision of the release you go back to, i.e. the oldest copy written by the failed deployment. Name where the operator can look that revision up (the release's newest file in `app/db/migrations/versions/`, or `SELECT version_num FROM alembic_version` on the copy).
 
 - Decision: fix
-- Status: open
+- Status: fixed
 
 #### R5 · MINOR · `backend/app/models/tag.py:28-33`
 
 **The tag key is not Unicode-normalized, so visually identical tags can coexist.** `name.strip().casefold()` without normalization treats `"Österreichisch"` in NFC (`Ö` = U+00D6) and NFD (`O` + U+0308) as different (probe: both stored). NFD text comes from macOS input and from copy-paste out of PDFs and web pages, which is plausible when typing in paper recipes. The spec explicitly promises case-insensitive uniqueness for umlauts. Suggested fix: `unicodedata.normalize("NFC", value.strip())` for `name`, and the same normalization before `casefold()` for `name_key`, plus a parametrized test case. Doing it now is cheap. Once tags exist, changing the key needs a data migration and duplicate resolution. Related decision for the human: `casefold()` maps `ß` to `ss`, so `"Maße"` and `"Masse"` collide. That goes beyond "regardless of letter case" in the spec. Either accept it explicitly (design D8) or use `lower()` after NFC normalization.
 
 - Decision: fix (NFC-normalise name and name_key; keep casefold(), ß and ss are deliberately the same tag; document in design D8)
-- Status: open
+- Status: fixed
 
 #### R6 · MINOR · `backend/app/models/recipe.py:55-61`
 
@@ -84,14 +84,14 @@ Whichever option is chosen, also log a warning naming the existing copy when the
 **Foreign keys being off during migrations depends on an implicit default that no test checks, and orphaned links would go unnoticed.** The safety argument in D7 (batch mode must not cascade-delete `recipe_tags`) depends on the migration connection having `foreign_keys` off. The code gets that only from SQLite's compile-time default (`SQLITE_DEFAULT_FOREIGN_KEYS=0`) and from the listener being attached to the application engine only. A future change, such as a global `Engine` `connect` listener or a SQLite build with a different default, would silently turn on the cascade. Because enforcement is off, a faulty future migration can also leave dangling `recipe_tags` rows, and later application connections do not check existing rows. Suggested fix: run `PRAGMA foreign_keys=OFF` explicitly on the migration connection before the transaction starts. After the upgrade, run `PRAGMA foreign_key_check` and fail startup (or at least log) if it returns rows. Add a test that asserts `PRAGMA foreign_keys` is `0` inside the migration connection.
 
 - Decision: fix
-- Status: open
+- Status: fixed
 
 #### R8 · MINOR · `backend/tests/test_recipe_model.py:160-166`
 
 **The creation-timestamp test checks neither "time of creation" nor UTC.** `test_timestamps_are_set_on_creation` only asserts `created_at is not None` and `updated_at == created_at`. It would still pass if `utcnow()` returned local time or a constant. The requirement states "Timestamps SHALL be recorded in UTC" and the scenario says "set to the time of creation". Suggested fix: take `datetime.now(UTC).replace(tzinfo=None)` before and after the commit and assert `before <= created_at <= after`. On a CET machine, local time would then fail the test.
 
 - Decision: fix
-- Status: open
+- Status: fixed
 
 ### Nits
 

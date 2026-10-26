@@ -70,7 +70,7 @@ The system SHALL set `created_at` and `updated_at` when a recipe is created, and
 - **AND** `created_at` is unchanged
 
 ### Requirement: Tags are free-form, trimmed, and unique regardless of case
-The system SHALL let tags be created with any non-empty name; there is no fixed list. Leading and trailing whitespace SHALL be removed before a tag is stored. Tag names SHALL be unique regardless of letter case, including non-ASCII letters such as German umlauts. The stored spelling SHALL be the one used when the tag was first created.
+The system SHALL let tags be created with any non-empty name; there is no fixed list. Leading and trailing whitespace SHALL be removed before a tag is stored. Tag names SHALL be unique regardless of letter case, including non-ASCII letters such as German umlauts, and regardless of Unicode composition form (a letter written as one code point or as base letter plus combining mark is the same letter). Case folding treats `ß` and `ss` as equal. The stored spelling SHALL be the one used when the tag was first created.
 
 #### Scenario: Tag name with surrounding whitespace
 - **WHEN** a tag named `"  Pasta  "` is created
@@ -85,6 +85,16 @@ The system SHALL let tags be created with any non-empty name; there is no fixed 
 #### Scenario: Same name in different case with umlauts
 - **GIVEN** a stored tag `"Österreichisch"`
 - **WHEN** a tag named `"österreichisch"` is created
+- **THEN** it is rejected as a duplicate
+
+#### Scenario: Same name in a different Unicode form
+- **GIVEN** a stored tag `"Österreichisch"` written with the precomposed letter `Ö`
+- **WHEN** a tag is created with the same text written as `O` followed by a combining diaeresis
+- **THEN** it is rejected as a duplicate
+
+#### Scenario: Sharp s and double s
+- **GIVEN** a stored tag `"Maße"`
+- **WHEN** a tag named `"Masse"` is created
 - **THEN** it is rejected as a duplicate
 
 #### Scenario: Empty tag name

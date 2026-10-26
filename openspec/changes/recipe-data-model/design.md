@@ -62,10 +62,14 @@ The migration function, in order:
 
 1. Records whether the database file exists **before** any connection is opened. If it does not, the database is "created on this start" and no backup is made.
 2. Opens a sync connection, reads the current revision (`MigrationContext.get_current_revision()`, `None` → `base`) and compares it with the head of the script directory. The connection is closed before the copy.
-3. If the file existed and the current revision is not the head: copies the file to `<name>.bak-<current revision>` in the same directory with `shutil.copy2` — unless a file of that name already exists. A failed copy raises a `RuntimeError` naming the backup path; no migration runs.
-4. Runs `command.upgrade(config, "head")`.
+3. If the file existed and the current revision is not the head: copies the file to `<name>.bak-<current revision>` in the same directory — unless a file of that name already exists, in which case it logs a warning naming that copy and moves on. The copy goes to `<name>.bak-<revision>.partial` first, is flushed with `fsync`, and is then renamed with `os.replace`; the temporary file is deleted on failure. Only a complete copy therefore ever has the final name, so an interrupted copy (full SD card, power loss) is not mistaken for a backup by the automatic restart (`restart: unless-stopped`). A failed copy raises a `RuntimeError` naming the backup path; no migration runs.
+4. Runs `command.upgrade(config, "head")`, then `PRAGMA foreign_key_check` (see D7).
+
+The steps log through the `uvicorn.error` logger — Uvicorn configures only its own loggers, so a module logger without a handler, or Alembic's own INFO lines, would never reach `docker compose logs`: the revision change (`current -> head`), a backup written (path), and a backup skipped (path, WARNING).
 
 The revision in the file name is the one the database was **at**, i.e. the schema the copy contains, so it tells which release can open it. Not overwriting an existing copy matters on SQLite: Alembic's SQLite DDL is not transactional, so a failed upgrade can leave the database partially migrated at the *same* recorded revision. The next start would then copy the half-migrated file over the good backup. Keeping the first copy keeps the last good state.
+
+The rule has a consequence for the restore procedure: after a copy-based restore the old `app.db.bak-<revision>` still exists, so a later deployment of the fixed release would skip its backup and migrate data that was entered in between without a current copy. The restore instructions (README, ADR-8, arc42 §11) therefore tell the operator to rename the used copy (e.g. to `app.db.bak-<revision>.restored`) so the name is free again, and to restore the copy named after the revision of the release being returned to — the oldest copy the failed deployment wrote, since a restart after a partial failure can write a second copy from a half-migrated file. The warning logged when a backup is skipped is the second line of defence if the procedure is not followed.
 
 The first start on the Pi after this change finds the existing empty `app.db` without a version table and produces `app.db.bak-base` — harmless, and it gives the Pi deployment check something concrete to verify.
 
@@ -79,11 +83,15 @@ Any exception from steps 2–4 is re-raised as `RuntimeError(f"Database migratio
 
 A `connect` event listener on the application's engine (`engine.sync_engine`) executes `PRAGMA foreign_keys=ON` for every new connection, so `ON DELETE CASCADE` on `recipe_tags` works for ORM deletes and direct SQL deletes alike. The ORM relationship uses `passive_deletes=True` to leave link removal to the database.
 
-The **migration** connection deliberately keeps foreign-key enforcement off (SQLite's default). Batch mode migrates a table by creating a copy, moving rows, dropping the original, and renaming; with enforcement on, dropping `recipes` would cascade-delete every row in `recipe_tags` — silent data loss in exactly the scenario *pending migrations and existing data*. This is documented in `env.py`.
+The **migration** connection deliberately has foreign-key enforcement off, and `env.py` sets `PRAGMA foreign_keys=OFF` explicitly instead of relying on SQLite's compile-time default, so a future global `Engine` `connect` listener or a differently built SQLite cannot switch it on unnoticed (a test registers such a listener and asserts the migration sees `0`). Batch mode migrates a table by creating a copy, moving rows, dropping the original, and renaming; with enforcement on, dropping `recipes` would cascade-delete every row in `recipe_tags` — silent data loss in exactly the scenario *pending migrations and existing data*. This is documented in `env.py`. Because enforcement is off, a faulty migration could leave dangling `recipe_tags` rows that no later application connection would ever check; after the upgrade `run_migrations()` therefore runs `PRAGMA foreign_key_check` and aborts startup with a `RuntimeError` naming the offending table if it returns rows.
+
+Not yet handled: changing only a recipe's tags writes `recipe_tags` and leaves `recipes.updated_at` untouched (`onupdate` fires only when a column of `recipes` changes). The recipe API in #9 must update `updated_at` itself when it edits a recipe's tags (review R6, deferred).
 
 ### D8: Case-insensitive tag uniqueness via a normalized key column
 
-`tags` has `name` (stripped, first spelling, displayed) and `name_key` (`name.strip().casefold()`, `UNIQUE`, `NOT NULL`). The model computes both from the given name in one place (a `@validates("name")` hook or equivalent) and raises `ValueError` for a name that is empty after stripping; a `CHECK (name_key <> '')` backs this up in the database. A differently cased duplicate violates the unique constraint on `name_key`, so the insert fails with `IntegrityError` and the first spelling stays.
+`tags` has `name` (NFC-normalized and stripped, first spelling, displayed) and `name_key` (the same normalized name, `.casefold()`ed, `UNIQUE`, `NOT NULL`). The model computes both from the given name in one place (a `@validates("name")` hook or equivalent) and raises `ValueError` for a name that is empty after stripping; a `CHECK (name_key <> '')` backs this up in the database. A differently cased duplicate violates the unique constraint on `name_key`, so the insert fails with `IntegrityError` and the first spelling stays.
+
+Names are normalized to Unicode **NFC** (`unicodedata.normalize`) before stripping and case folding, because macOS input and copy-paste from PDFs or web pages produce decomposed umlauts (`O` + U+0308) that look identical to the composed `Ö`; without it both would be stored as separate tags. `casefold()` (not `lower()`) is kept **on purpose**: it maps `ß` to `ss`, so `Maße` and `Masse` are the same tag. For German recipe tags that is wanted — a household typing either spelling means the same thing — and it is cheaper to decide now than to merge duplicates later, since changing the key afterwards needs a data migration.
 
 *Alternatives:* `name TEXT COLLATE NOCASE UNIQUE` or a unique index on `lower(name)` — both fold only ASCII in SQLite, so `"Österreichisch"` and `"österreichisch"` would both be accepted, which matters for German tags; the ICU extension — not available in the stock `sqlite3` module.
 
@@ -112,7 +120,7 @@ Further tests:
 ## Risks / Trade-offs
 
 - [SQLite DDL is not transactional in Alembic; a failed migration can leave a half-migrated file] → The pre-migration copy is the recovery path, and it is never overwritten (D5). The restore procedure is in the README.
-- [Batch-mode migrations combined with foreign-key enforcement would cascade-delete link rows] → Enforcement stays off on the migration connection (D7); the data-preservation test pattern guards future revisions.
+- [Batch-mode migrations combined with foreign-key enforcement would cascade-delete link rows] → Enforcement is explicitly off on the migration connection and checked afterwards with `foreign_key_check` (D7); the data-preservation test pattern guards future revisions.
 - [Backup copies accumulate in the volume without cleanup] → Accepted for now (out of scope per the issue). One copy per migrated release is small for a recipe database; the README says so and how to delete old copies.
 - [`shutil.copy2` is not consistent if another process writes the file during startup, or if WAL mode is enabled later] → Today there is a single process and the rollback journal; D5 records the online-backup API as the switch if that changes.
 - [Startup time grows with migrations] → Negligible at this data size; the Docker health check already has a start period.
@@ -123,4 +131,5 @@ Further tests:
 
 1. Merge and deploy as usual (`git pull && docker compose up -d --build` on the Pi, Gate 3).
 2. On first start the container finds the empty `app.db`, writes `data/app.db.bak-base`, and upgrades to the first revision; `/health` answers `200 OK`.
-3. **Rollback** if a later migration fails: stop the container, replace `data/app.db` with the matching `data/app.db.bak-<revision>`, check out the previous release, and start it again. Alembic downgrades are not used operationally.
+3. **Rollback** if a later migration fails: stop the container, replace `data/app.db` with the copy named after the revision of the release you go back to (the oldest copy the failed deployment wrote), **rename that copy** (e.g. `app.db.bak-<revision>.restored`) so the next deployment can write a fresh one, check out the previous release, and start it again. Alembic downgrades are not used operationally.
+4. Once the first start has been checked in the logs, `data/app.db.bak-base` (a copy of the empty database from #2) can be deleted.

@@ -39,7 +39,7 @@ The versioned migrations SHALL produce exactly the schema the application's data
 - **THEN** comparing the resulting schema against the application's data model definition reports no differences
 
 ### Requirement: Database file is copied before pending migrations run
-When the configured database file already exists and has pending migrations, the application SHALL copy the file before applying any migration. The copy SHALL be placed in the same directory as the database file and be named after it with the suffix `.bak-<revision>`, where `<revision>` is the schema version the database had before the migration, or `base` if it had none (e.g. `app.db.bak-base`). An existing copy with that name SHALL NOT be overwritten.
+When the configured database file already exists and has pending migrations, the application SHALL copy the file before applying any migration. The copy SHALL be placed in the same directory as the database file and be named after it with the suffix `.bak-<revision>`, where `<revision>` is the schema version the database had before the migration, or `base` if it had none (e.g. `app.db.bak-base`). An existing copy with that name SHALL NOT be overwritten, and the application SHALL log a warning naming it. A copy that could not be written completely SHALL NOT remain under that name. The application SHALL log the revision change and every copy it writes.
 
 #### Scenario: Existing database with pending migrations
 - **GIVEN** an existing database file at schema version `<revision>` with pending migrations
@@ -67,6 +67,12 @@ When the configured database file already exists and has pending migrations, the
 - **AND** a file `<database file name>.bak-<revision>` already exists next to it
 - **WHEN** the application starts
 - **THEN** the existing backup copy keeps its previous content
+
+#### Scenario: Backup copy is interrupted
+- **GIVEN** an existing database file with pending migrations
+- **AND** writing the backup copy fails after part of the file was written
+- **WHEN** the application starts, fails, and starts again
+- **THEN** the second start writes a complete copy that is identical to the database file as it was before the first start
 
 #### Scenario: Backup copy cannot be written
 - **GIVEN** an existing database file with pending migrations
