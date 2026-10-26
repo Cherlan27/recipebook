@@ -16,3 +16,5 @@
 - 2026-10-26 gate 2 reached: waiting for human decisions per finding.
 - 2026-10-26 gate 2: human decided R2 = option (a), R5 = ß and ss are the same tag (casefold kept), and accepted the coordinator's recommendations for the rest: fix R1,R3,R4,R7,R8 and nits N1,N3; defer R6 (follow-up for #9); skip N2.
 - 2026-10-26 phase 4 review fixes started: claude/sonnet
+- 2026-10-26 phase 4 review fixes (claude/sonnet, ctx_f6491a588216) finished: succeeded, 4 commits a2ab078..502ae3c; R1-R5, R7, R8 Status: fixed, R6 deferred. NOT accepted at first: coordinator's `make check` failed once on test_timestamps_are_set_on_creation (flaky: created_at and updated_at come from two separate utcnow() calls, microseconds apart; the equality assertion is flaky); reran green. Sent to a small follow-up fix worker.
+- 2026-10-26 phase 4b started: claude/sonnet, fix flaky timestamp test only. Round 2 of phase 3 follows (required because MAJOR findings R1/R2 were fixed; last allowed round).
