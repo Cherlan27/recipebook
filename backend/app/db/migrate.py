@@ -46,8 +46,8 @@ def run_migrations(
     """Upgrade the database to the latest revision (synchronous; see ADR-8).
 
     An existing database with pending migrations is copied to
-    ``<name>.bak-<revision>`` first, unless that copy already exists. Afterwards the
-    database must have no foreign-key violations.
+    ``<name>.bak-<revision>`` first, unless that copy already exists. On every start,
+    migrated or not, the database must have no foreign-key violations.
     """
     database_path = database_path or settings.database_path
     config = build_config(database_path, script_location or DEFAULT_SCRIPT_LOCATION)
@@ -67,15 +67,17 @@ def run_migrations(
             if existed:
                 backup_before_upgrade(database_path, current)
             command.upgrade(config, "head")
-            check_foreign_keys(database_path)
     except BackupError:
         raise
     except Exception as exc:
         raise RuntimeError(f"Database migration failed for {database_path}: {exc}") from exc
 
+    # Outside the try block: violations are not necessarily the migration's doing (see ADR-8).
+    check_foreign_keys(database_path)
+
 
 def check_foreign_keys(database_path: Path) -> None:
-    """Migrations run with enforcement off, so look for rows they left pointing nowhere."""
+    """Look for rows pointing nowhere: migrations run with enforcement off, and so does the sqlite3 CLI."""
     engine = create_engine(URL.create("sqlite", database=str(database_path)))
     try:
         with engine.connect() as connection:
@@ -84,7 +86,10 @@ def check_foreign_keys(database_path: Path) -> None:
         engine.dispose()
     if violations:
         details = ", ".join(f"{table} rowid {rowid} -> {parent}" for table, rowid, parent, _ in violations)
-        raise RuntimeError(f"Migrations left foreign key violations: {details}")
+        raise RuntimeError(
+            f"Database has foreign key violations: {details} (database: {database_path}). "
+            "Restore a backup copy (see README) or repair the rows, then start again."
+        )
 
 
 def backup_before_upgrade(database_path: Path, revision: str | None) -> None:

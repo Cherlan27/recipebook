@@ -252,5 +252,37 @@ def test_migration_leaving_orphaned_rows_aborts_startup(tmp_path):
         run_migrations(database_path, script_location=FIXTURES / "migrations_orphan")
 
     message = str(exc_info.value)
-    assert "Database migration failed" in message
+    assert "Database has foreign key violations" in message
     assert "children" in message
+
+
+def test_foreign_key_violations_abort_every_start_not_only_the_one_that_migrated(tmp_path):
+    database_path = tmp_path / "app.db"
+    scripts = FIXTURES / "migrations_orphan"
+
+    with pytest.raises(RuntimeError):
+        run_migrations(database_path, script_location=scripts)
+
+    # The database is stamped at head now, but the dangling row is still there.
+    with pytest.raises(RuntimeError) as exc_info:
+        run_migrations(database_path, script_location=scripts)
+
+    message = str(exc_info.value)
+    assert "Database has foreign key violations" in message
+    assert "children" in message
+    assert str(database_path) in message
+    assert "migration failed" not in message
+
+
+def test_foreign_key_violations_created_outside_the_application_abort_startup(tmp_path):
+    database_path = tmp_path / "app.db"
+    run_migrations(database_path, script_location=OK_SCRIPTS)
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("CREATE TABLE parents (id INTEGER PRIMARY KEY)")
+        connection.execute("CREATE TABLE children (id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parents(id))")
+        connection.execute("INSERT INTO children (id, parent_id) VALUES (1, 99)")
+
+    with pytest.raises(RuntimeError) as exc_info:
+        run_migrations(database_path, script_location=OK_SCRIPTS)
+
+    assert "Database has foreign key violations" in str(exc_info.value)
