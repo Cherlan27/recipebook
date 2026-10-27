@@ -1,0 +1,66 @@
+# .claude/workflow.yaml: the contract between this project and the agent-workflow plugin.
+# The plugin skills read this file. Everything project-specific lives here.
+version: 1
+
+# Command that must pass at the end of apply and fixes (run twice in a row).
+check: make check
+
+# Run once in a fresh worktree before tests or dev servers.
+setup: "uv sync --directory backend && npm ci --prefix frontend"
+
+base_branch: main
+branch_pattern: "issue-<n>-<short-name>"   # a "<user>/" prefix added by Orca is accepted
+
+# Agent and model per phase (cloud flow). `apply_local` is the Small-track local apply.
+models:
+  propose: { agent: claude, model: opus }
+  apply:   { agent: claude, model: sonnet }
+  apply_local: { agent: opencode, model: "ollama/qwen3.8:27b" }
+  review:  { agent: claude, model: opus }
+  fix:     { agent: claude, model: sonnet }
+  ship:    { agent: claude, model: sonnet }
+
+# Local (self-hosted) flow: run via `/agent-workflow:orchestrate-issue <n> --local`
+# when the cloud models (claude/codex) are at their token limit. Every phase --
+# including the review -- runs on the local model, so keep artifacts short and do
+# one review round; the human Gate 2 is the safety net. The Ollama backend must be up.
+local:
+  enabled: true
+  agent: opencode
+  model: "ollama/qwen3.8:27b"
+  context_window: 40000          # VRAM-honest working value, not the 126k max
+  max_track: full                # up to which track the local flow may run: trivial | small | full
+  backend_check: "curl -sf http://localhost:11434/api/tags >/dev/null"
+
+# Tracks: the coordinator proposes one before phase 1 and the human confirms it.
+# In doubt, take the higher track. `full` is the default when none of these match.
+tracks:
+  small:
+    max_tasks: 5
+    one_side_only: true          # backend or frontend, not both
+    forbid: [adr, new_dependency, migration]
+  trivial:
+    max_files: 2
+    allowed_paths: ["docs/", "*.md", ".github/", "openspec/config.yaml"]
+    forbidden_paths: ["backend/app", "frontend/src"]
+
+# Deployment: the human approves the merge and the Pi deploy at Gate 3.
+deploy:
+  approval_required: true
+  command: "git pull && docker compose up -d --build"
+  health_check: ""               # e.g. curl -s -o /dev/null -w "%{http_code}\n" http://<pi>:8000/health
+  needs_docker_locally: false    # local dev/tests use uv + npm; Docker runs on the Pi
+
+# Ports that only one worktree may use at a time.
+shared_ports: [8000, 5173]
+
+# Directories used by the architecture rules.
+docs:
+  adr_dir: docs/adr
+  arc42_dir: docs/arc42/adoc
+
+# Extra review checks for this project (added to the generic checklist).
+review:
+  extra_checks:
+    - "Backend layering: routers in app/api/routes/, models in app/models/ (ADR 0006)."
+    - "Deterministic tests: no equality of two clock reads."
