@@ -49,8 +49,8 @@ must not be the agent that wrote the code.
 |---|---|---|---|
 | 1 | **Propose** | `/opsx:propose` creates proposal (`Closes #<issue>`), delta specs, design, and tasks. If the change involves an architecture decision, the ADR in `docs/adr/` and the `docs/arc42/adoc/` updates are written here, *before* implementation. | `claude` · `opus` |
 | | ⏸ **Gate 1** | A human approves the proposal and decides whether the change counts as small (see below). | human |
-| 2 | **Apply** | `/opsx:apply`, task by task, red → green → refactor, one commit per task group, until `make check` passes. | `claude` · `sonnet`; small changes: `opencode` · `ollama/qwen3.8:27b` (`/opsx-apply`) |
-| 3 | **Review analysis** | `/review-change` (`.claude/skills/review-change/`): checks the branch against `main` for spec conformance, test evidence, project rules, correctness, security, and deployment impact. Writes numbered findings to `openspec/changes/<change>/review.md`, changes no code. | `claude` · `opus` |
+| 2 | **Apply** | `/opsx:apply`, task by task, red → green → refactor, one commit per task group, until `make check` passes. | `claude` · `sonnet`; the local model via `--local` (see *Local flow*) |
+| 3 | **Review analysis** | `/agent-workflow:review-change`: checks the branch against `main` for spec conformance, test evidence, project rules, correctness, security, and deployment impact. Writes numbered findings to `openspec/changes/<change>/review.md`, changes no code. | `claude` · `opus` |
 | | ⏸ **Gate 2** | A human selects which findings to fix. | human |
 | 4 | **Review fixes** | Implements the selected findings (TDD where behavior changes), marks each one `Status: fixed` in `review.md`, re-runs `make check`. A second review round follows only if a CRITICAL or MAJOR finding was fixed; at most two rounds. Round 2 is scoped: it checks the fix commits only. | `claude` · `sonnet` |
 | 5 | **Archive & PR** | `/opsx:archive` on the branch, PR against `main` with `Closes #<issue>`. | `claude` · `sonnet` |
@@ -86,11 +86,18 @@ The Small and Trivial tracks are untried: after the first few issues, check the
 workflow logs and move work up a track if the review or CI catches what the
 lighter track skipped.
 
-**Local model** – only on the Small track, and then propose and apply are split
-into two workers (`sonnet` proposes, `opencode` applies). If its run leaves verification failing, the apply is
-handed to `sonnet` instead of retried locally. The same happens if the local
-worker has made no commit and ticked no task after 10 minutes. (Issue #3: the
-local model spent 17 minutes planning a non-small change and was stopped.)
+**Local flow (`--local`)** – when the cloud models (`claude`/`codex`) are at
+their token limit, run the flow on the local model:
+`/agent-workflow:orchestrate-issue <issue> --local`. Every phase -- including
+the review -- then runs on `local.model` (`ollama/qwen3.8:27b`, via `opencode`).
+Because one weaker local model does both the work and the review, keep
+artifacts short (the worker sizes its reads to `local.context_window`, 40000),
+do exactly one review round, and let the human at Gate 2 be the safety net.
+The Ollama backend must be up first (`local.backend_check`) and the worker runs
+at a low `temperature` (~0.1–0.2). Any track up to `local.max_track` may run.
+The old "local only on the Small track" restriction is retired; the local flow
+is now a first-class track selection, and the per-track contract lives in
+[`.claude/workflow.yaml`](.claude/workflow.yaml).
 
 **Archive before merge** – `/opsx:archive` syncs the delta specs into
 `openspec/specs/` and moves the change to `openspec/changes/archive/` on the
@@ -101,7 +108,7 @@ change keeps `review.md` as the record of the review.
 then delete the worktree and the branch (locally and on GitHub).
 
 **Retrospective** – the workflow itself is still being tuned. After each
-issue, `/adjust-workflow <issue>` reads the coordinator's `workflow-log.md`,
+issue, `/agent-workflow:adjust-workflow <issue>` reads the coordinator's `workflow-log.md`,
 the review, and the history, proposes small fixes to the workflow files, and
 records the approved ones in [`docs/workflow-retros.md`](docs/workflow-retros.md),
 each marked *generic* or *project-specific*. Workflow changes go through a PR
@@ -110,7 +117,7 @@ like any other change.
 ## Orchestrating the phases with Orca
 
 A **coordinator** agent (`claude` · `sonnet`) owns one issue. It follows the
-`/orchestrate-issue` skill (`.claude/skills/orchestrate-issue/`): it runs in the
+`/agent-workflow:orchestrate-issue` skill (agent-workflow plugin): it runs in the
 issue's worktree, starts one supervised Orca worker per phase with the model
 from the table, checks each result itself instead of trusting the worker's
 report, and stops at every gate to ask you. It does not write code. Start it
@@ -119,7 +126,7 @@ together with the worktree:
 ```
 orca worktree create --name issue-3-recipe-model --no-parent \
   --reference https://github.com/Cherlan27/recipebook/issues/3 \
-  --agent claude --model sonnet --prompt "/orchestrate-issue 3"
+  --agent claude --model sonnet --prompt "/agent-workflow:orchestrate-issue 3"
 ```
 
 Workers share the worktree, so phases never run in parallel. Without a
