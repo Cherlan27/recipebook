@@ -11,5 +11,16 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "agent-workflow": {
+      "source": {
+        "source": "github",
+        "repo": "Cherlan27/agent-workflow"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "agent-workflow@agent-workflow": true
   }
 }
