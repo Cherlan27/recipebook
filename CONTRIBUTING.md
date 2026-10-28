@@ -51,7 +51,7 @@ must not be the agent that wrote the code.
 | | ⏸ **Gate 1** | A human approves the proposal and decides whether the change counts as small (see below). | human |
 | 2 | **Apply** | `/opsx:apply`, task by task, red → green → refactor, one commit per task group, until `make check` passes. | `claude` · `sonnet`; the local model via `--local` (see *Local flow*) |
 | 3 | **Review analysis** | `/agent-workflow:review-change`: checks the branch against `main` for spec conformance, test evidence, project rules, correctness, security, and deployment impact. Writes numbered findings to `openspec/changes/<change>/review.md`, changes no code. | `claude` · `opus` |
-| | ⏸ **Gate 2** | A human selects which findings to fix. | human |
+| | ⏸ **Gate 2** | A human selects which findings to fix. Judgment calls (`Recommendation: decide`) and skipped CRITICAL/MAJOR findings come without a default. | human |
 | 4 | **Review fixes** | Implements the selected findings (TDD where behavior changes), marks each one `Status: fixed` in `review.md`, re-runs `make check`. A second review round follows only if a CRITICAL or MAJOR finding was fixed; at most two rounds. Round 2 is scoped: it checks the fix commits only. | `claude` · `sonnet` |
 | 5 | **Archive & PR** | `/opsx:archive` on the branch, PR against `main` with `Closes #<issue>`. | `claude` · `sonnet` |
 | | ⏸ **Gate 3** | A human approves the merge (merge commit) and the deployment to the Pi; then branch and worktree are cleaned up. | human |
@@ -61,6 +61,22 @@ the type-checked frontend build, and `openspec validate --all --strict`. It
 must pass twice in a row at the end of phases 2 and 4 (the second run catches
 flaky tests), and GitHub Actions runs it on every pull request
 (`.github/workflows/check.yml`).
+
+**Test integrity** – `make check` also passes once before any code change
+(baseline). A pass only counts if the tests still test the behavior: deleting,
+skipping, or loosening a test, or weakening the check, fails the phase. The
+coordinator checks every result itself; a worker's report is a pointer, not proof.
+
+**Blocked means stop** – a worker that is blocked (tool missing, environment
+down, task unclear) stops and reports; it does not work around the blocker. A
+phase that runs longer than `limits.phase_minutes` is checked and, if stuck,
+handed to the human.
+
+**Code map** – `code_map: trail` is set: workers find code with the Trail Code
+CLI (`trail ask`, `trail skeleton`, `trail callers`) before reading whole files,
+and the reviewer runs `trail check` against `.trail/learnings/`. Learnings hold
+code facts only; workflow rules stay in this file, `openspec/config.yaml`, and
+`CLAUDE.md`. Changed learnings are reviewed like docs.
 
 **Style** – workflow artifacts, agent reports, and review findings use simple
 technical English: short sentences, no filler. Reports are at most 5 lines,

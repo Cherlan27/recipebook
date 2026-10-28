@@ -6,7 +6,7 @@ version: 1
 check: make check
 
 # Run once in a fresh worktree before tests or dev servers.
-setup: "uv sync --directory backend && npm ci --prefix frontend"
+setup: "uv sync --directory backend && npm ci --prefix frontend && trail build"
 
 base_branch: main
 branch_pattern: "issue-<n>-<short-name>"   # a "<user>/" prefix added by Orca is accepted
@@ -31,6 +31,15 @@ local:
   context_window: 40000          # VRAM-honest working value, not the 126k max
   max_track: full                # up to which track the local flow may run: trivial | small | full
   backend_check: "curl -sf http://localhost:11434/api/tags >/dev/null"
+
+# Optional code map, so a cold worker finds code without reading whole files:
+# none | trail (Trail Code CLI). `setup` builds the map in .trail/cache/.
+code_map: trail
+
+# Stop rule for cloud workers: after this many minutes in one phase the
+# coordinator checks the worker and asks the human if it is stuck.
+limits:
+  phase_minutes: 30
 
 # Tracks: the coordinator proposes one before phase 1 and the human confirms it.
 # In doubt, take the higher track. `full` is the default when none of these match.
