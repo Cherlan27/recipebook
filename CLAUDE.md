@@ -65,9 +65,10 @@ Full workflow: `CONTRIBUTING.md`. Rules agents need most:
 - Each phase is its own agent session with a fixed model (propose `opus`, apply `sonnet`, review `opus`, fixes `sonnet`, archive & PR `sonnet`). A `sonnet` coordinator (`/agent-workflow:orchestrate-issue`) picks a track (Full, Small, Trivial; see `CONTRIBUTING.md`) and stops for a human after propose, after review, and before merge/deploy. Do only your phase.
 - When the cloud models are at their token limit, run the flow on the local model instead: `/agent-workflow:orchestrate-issue <issue> --local` (every phase, review included, on `local.model`; the human Gate 2 is the safety net — see `CONTRIBUTING.md`).
 - A phase is done when `make check` passes (twice in a row after apply and fixes). Tick a task only after its test or command passed in your session. Tests must be deterministic (no equality of two clock reads).
+- Never delete, skip, or loosen a test, or weaken the check, to make it pass. If you are blocked or a test looks wrong, stop and report it; do not work around it.
 - Review (`/agent-workflow:review-change`) writes findings to `openspec/changes/<change>/review.md` and changes no code; fixes implement only findings with `Decision: fix`.
 - Run `/opsx:archive` on the branch before merging.
-- A fresh worktree needs `uv sync --directory backend && npm ci --prefix frontend`.
+- A fresh worktree needs `uv sync --directory backend && npm ci --prefix frontend && trail build`.
 - Dev servers use fixed ports `8000` and `5173`; do not start them if another worktree has them (`orca ports --json`).
 - Never edit generated OpenSpec skills/commands in `.claude/` or `.opencode/`; put project rules in `openspec/config.yaml`.
 - Style: simple technical English, short sentences, no filler. Reports at most 5 lines.
