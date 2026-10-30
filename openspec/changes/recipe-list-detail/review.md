@@ -20,10 +20,11 @@ The change implements every scenario of `recipe-api` and `recipe-ui` (except the
 `getJson` throws `BackendUnavailableError` for every non-ok status except 404, so any 4xx counts as "backend unreachable". D6 and the spec limit that error to network errors and `5xx`. Failure: when a user opens `/#/recipes/abc` (typo, stale link), `RecipeDetailView.vue:19` sends `Number('abc')` → `/api/recipes/NaN`. The backend answers 422 (probe above), and the page says "The backend is not reachable" although the backend is up. Fix: throw `BackendUnavailableError` only for `status >= 500`, and show the not-found hint for an id that is not a positive integer (check in the view, or treat 422 like 404). Add a test for it.
 
 - Recommendation: fix — small change, brings the code back in line with D6.
-- Decision: pending
+- Decision: fix
 - Status: open
 
 ### Nits
+Decision for N1-N3: fix (human, Gate 2). Status: open.
 - N1 · `frontend/src/views/RecipeDetailView.test.ts:77`, `RecipeListView.test.ts:71` — only the label `Effort` is checked, not the value; `toContain('Effort 2/3')` would catch a missing value.
 - N2 · `frontend/src/style.css:171` — scaffold leftovers after removing `HelloWorld`: CSS for `#center`/`#next-steps` and the unused `src/assets/{hero.png,vite.svg,vue.svg}` and `public/icons.svg`.
 - N3 · `CLAUDE.md:45` — the backend layer list does not mention the new `app/schemas/` package (arc42 05 does).

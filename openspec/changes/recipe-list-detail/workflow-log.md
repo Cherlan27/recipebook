@@ -12,3 +12,5 @@
 - 2026-10-30 phase 2 apply end: succeeded, HEAD 5988042; tasks all ticked (7.3 removed per human); make check re-run by coordinator: 65 backend, 28 frontend, openspec 5 ok; test integrity ok (only App.test.ts adapted for router, HelloWorld scaffold removed per task 4.4)
 - 2026-10-30 phase 3 review start (HEAD 5988042): claude/opus
 - 2026-10-30 phase 3 review end: succeeded, review.md round 1 (commit 6b950b1); 0 critical, 0 major, 1 minor, 3 nits; only review.md changed
+- 2026-10-30 Gate 2: human decided fix for R1 and also fix for nits N1-N3 (no reason given); no second review round (no CRITICAL/MAJOR)
+- 2026-10-30 phase 4 fixes start (HEAD 5ee03e0): claude/sonnet
