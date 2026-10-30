@@ -61,4 +61,18 @@ describe('fetchRecipe', () => {
 
     await expect(fetchRecipe(5)).rejects.toBeInstanceOf(BackendUnavailableError)
   })
+  it('throws NotFoundError on 422, which the backend answers for an invalid id', async () => {
+    stubFetch({ ok: false, status: 422 })
+
+    await expect(fetchRecipe(5)).rejects.toBeInstanceOf(NotFoundError)
+  })
+
+  it('does not report another 4xx status as an unreachable backend', async () => {
+    stubFetch({ ok: false, status: 400 })
+
+    const error = await fetchRecipe(5).catch((caught) => caught)
+
+    expect(error).toBeInstanceOf(Error)
+    expect(error).not.toBeInstanceOf(BackendUnavailableError)
+  })
 })

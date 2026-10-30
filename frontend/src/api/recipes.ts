@@ -29,8 +29,14 @@ async function getJson<T>(url: string): Promise<T> {
   } catch {
     throw new BackendUnavailableError('The backend is not reachable')
   }
-  if (response.status === 404) throw new NotFoundError(`Not found: ${url}`)
-  if (!response.ok) throw new BackendUnavailableError(`The backend answered ${response.status}`)
+  // 422: the backend rejects an id that is not an integer, which also means "no such recipe".
+  if (response.status === 404 || response.status === 422) {
+    throw new NotFoundError(`Not found: ${url}`)
+  }
+  if (response.status >= 500) {
+    throw new BackendUnavailableError(`The backend answered ${response.status}`)
+  }
+  if (!response.ok) throw new Error(`Unexpected response ${response.status} for ${url}`)
   return response.json() as Promise<T>
 }
 

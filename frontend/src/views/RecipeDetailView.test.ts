@@ -17,7 +17,7 @@ function stubRecipe(recipe: unknown) {
   stubFetch({ ok: true, status: 200, json: () => Promise.resolve(recipe) })
 }
 
-async function mountDetail(id = 5) {
+async function mountDetail(id: number | string = 5) {
   const router = createRouter({ history: createMemoryHistory(), routes })
   await router.push(`/recipes/${id}`)
   await router.isReady()
@@ -74,7 +74,7 @@ describe('RecipeDetailView', () => {
     const text = wrapper.text()
     expect(text).toContain('12')
     expect(text).toContain('Pasta')
-    expect(text).toContain('Effort')
+    expect(text).toContain('Effort 2/3')
     expect(text).toContain('25 min')
     expect(text).toContain('4 servings')
     expect(text).toContain('Kid-friendly: yes')
@@ -122,6 +122,18 @@ describe('RecipeDetailView', () => {
 
     expect(wrapper.text()).toContain('Recipe not found')
     expect(wrapper.find('a').attributes('href')).toBe('/')
+  })
+
+  it('shows the not-found hint, without a request, for an id that is not a positive integer', async () => {
+    stubFetch({ ok: false, status: 422 })
+
+    for (const id of ['abc', '0', '-3', '1.5']) {
+      const wrapper = await mountDetail(id)
+
+      expect(wrapper.text()).toContain('Recipe not found')
+      expect(wrapper.text()).not.toContain('backend is not reachable')
+    }
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it('shows a backend-unreachable hint when the backend answers with 500', async () => {

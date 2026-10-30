@@ -68,7 +68,7 @@ describe('RecipeListView', () => {
     const { wrapper } = await mountOverview()
 
     const text = wrapper.find('li').text()
-    expect(text).toContain('Effort')
+    expect(text).toContain('Effort 2/3')
     expect(text).toContain('25 min')
     expect(text).toContain('with adjustments')
     expect(text).toContain('Pasta')

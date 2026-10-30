@@ -16,15 +16,21 @@ const steps = computed(() => toLines(recipe.value?.steps ?? null))
 const notFound = ref(false)
 const backendUnavailable = ref(false)
 
-fetchRecipe(Number(useRoute().params.id))
-  .then((loaded) => {
-    recipe.value = loaded
-  })
-  .catch((error) => {
-    if (error instanceof NotFoundError) notFound.value = true
-    else if (error instanceof BackendUnavailableError) backendUnavailable.value = true
-    else throw error
-  })
+const id = Number(useRoute().params.id)
+
+if (Number.isInteger(id) && id > 0) {
+  fetchRecipe(id)
+    .then((loaded) => {
+      recipe.value = loaded
+    })
+    .catch((error) => {
+      if (error instanceof NotFoundError) notFound.value = true
+      else if (error instanceof BackendUnavailableError) backendUnavailable.value = true
+      else throw error
+    })
+} else {
+  notFound.value = true
+}
 </script>
 
 <template>
