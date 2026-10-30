@@ -39,7 +39,7 @@ Tests use `TestClient` with `get_db` overridden by a session on a temporary migr
 - [x] 6.3 Test, then code, for scenario *Line-wise ingredients and steps*: ingredients as `<ul>`, steps as `<ol>`, using `toLines`
 - [x] 6.4 Test, then code, for scenario *Unknown recipe*: not-found hint with a link to the overview
 - [x] 6.5 Test, then code, for scenario *Backend-unreachable hint on the detail view*
-- [ ] 6.6 Refactor views and API module while `npm test --prefix frontend` stays green
+- [x] 6.6 Refactor views and API module while `npm test --prefix frontend` stays green
 
 ## 7. Verification
 

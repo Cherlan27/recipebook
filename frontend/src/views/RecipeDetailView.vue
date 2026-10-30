@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   BackendUnavailableError,
@@ -11,6 +11,8 @@ import { kidFriendlyLabel } from '../kidFriendlyLabel'
 import { toLines } from '../toLines'
 
 const recipe = ref<RecipeDetail | null>(null)
+const ingredients = computed(() => toLines(recipe.value?.ingredients ?? null))
+const steps = computed(() => toLines(recipe.value?.steps ?? null))
 const notFound = ref(false)
 const backendUnavailable = ref(false)
 
@@ -41,16 +43,16 @@ fetchRecipe(Number(useRoute().params.id))
         Kid-friendly: {{ kidFriendlyLabel(recipe.kid_friendly) }}
       </p>
       <p v-if="recipe.tags.length > 0">Tags: {{ recipe.tags.join(', ') }}</p>
-      <section v-if="toLines(recipe.ingredients).length > 0">
+      <section v-if="ingredients.length > 0">
         <h2>Ingredients</h2>
         <ul>
-          <li v-for="(line, index) in toLines(recipe.ingredients)" :key="index">{{ line }}</li>
+          <li v-for="(line, index) in ingredients" :key="index">{{ line }}</li>
         </ul>
       </section>
-      <section v-if="toLines(recipe.steps).length > 0">
+      <section v-if="steps.length > 0">
         <h2>Steps</h2>
         <ol>
-          <li v-for="(line, index) in toLines(recipe.steps)" :key="index">{{ line }}</li>
+          <li v-for="(line, index) in steps" :key="index">{{ line }}</li>
         </ol>
       </section>
     </template>
