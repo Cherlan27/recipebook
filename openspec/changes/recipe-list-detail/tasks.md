@@ -43,5 +43,5 @@ Tests use `TestClient` with `get_db` overridden by a session on a temporary migr
 
 ## 7. Verification
 
-- [ ] 7.1 Run `make check` (backend tests, frontend tests, type-checked build, `openspec validate --strict`); it passes twice in a row
-- [ ] 7.2 Manual check with the dev servers (needs ports 8000 and 5173 free, check `orca ports --json`): overview loads through the proxy; with the backend stopped, the backend-unreachable hint appears
+- [x] 7.1 Run `make check` (backend tests, frontend tests, type-checked build, `openspec validate --strict`); it passes twice in a row
+- [x] 7.2 Manual check with the dev servers (needs ports 8000 and 5173 free, check `orca ports --json`): overview loads through the proxy; with the backend stopped, the backend-unreachable hint appears
