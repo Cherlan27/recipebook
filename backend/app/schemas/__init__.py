@@ -1,3 +1,3 @@
-from app.schemas.recipe import RecipeListItem
+from app.schemas.recipe import RecipeDetail, RecipeListItem
 
-__all__ = ["RecipeListItem"]
+__all__ = ["RecipeDetail", "RecipeListItem"]

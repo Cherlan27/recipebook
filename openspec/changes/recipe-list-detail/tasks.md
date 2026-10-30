@@ -14,9 +14,9 @@ Tests use `TestClient` with `get_db` overridden by a session on a temporary migr
 
 ## 3. Recipe detail endpoint
 
-- [ ] 3.1 Test, then code, for scenario *Detail with all fields* (API): `RecipeDetail` schema and `GET /api/recipes/{id}`, line breaks kept
-- [ ] 3.2 Test, then code, for scenario *Unknown id*: `404`
-- [ ] 3.3 Refactor routes and schemas while `uv run pytest` stays green
+- [x] 3.1 Test, then code, for scenario *Detail with all fields* (API): `RecipeDetail` schema and `GET /api/recipes/{id}`, line breaks kept
+- [x] 3.2 Test, then code, for scenario *Unknown id*: `404`
+- [x] 3.3 Refactor routes and schemas while `uv run pytest` stays green
 
 ## 4. Frontend setup
 
