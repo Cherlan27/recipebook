@@ -45,4 +45,3 @@ Tests use `TestClient` with `get_db` overridden by a session on a temporary migr
 
 - [ ] 7.1 Run `make check` (backend tests, frontend tests, type-checked build, `openspec validate --strict`); it passes twice in a row
 - [ ] 7.2 Manual check with the dev servers (needs ports 8000 and 5173 free, check `orca ports --json`): overview loads through the proxy; with the backend stopped, the backend-unreachable hint appears
-- [ ] 7.3 Manual check for scenario *Empty state on the Raspberry Pi* (needs the Pi and Docker; done by the human after merge): deploy, open the overview from another device, see the empty-database hint; a `/#/recipes/1` reload shows the not-found hint
