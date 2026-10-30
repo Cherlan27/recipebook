@@ -13,6 +13,10 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    // The frontend uses relative /api URLs, in development as in the container (ADR-7).
+    proxy: { '/api': 'http://localhost:8000' },
+  },
   test: {
     environment: 'jsdom',
   },

@@ -20,10 +20,10 @@ Tests use `TestClient` with `get_db` overridden by a session on a temporary migr
 
 ## 4. Frontend setup
 
-- [ ] 4.1 Add the dependency with `npm install vue-router --prefix frontend`; add the `/api` proxy to `http://localhost:8000` in `frontend/vite.config.ts` (D2)
-- [ ] 4.2 Test, then code, for the API module `src/api/recipes.ts`: typed `fetchRecipes()` and `fetchRecipe(id)` with relative URLs, `NotFoundError` on `404`, `BackendUnavailableError` on network errors and `5xx` (D6); `fetch` is stubbed with `vi.stubGlobal`
-- [ ] 4.3 Test, then code, for `toLines(text)`: splits on `\n` and `\r\n`, trims, drops empty and whitespace-only lines, returns `[]` for `null` (D5)
-- [ ] 4.4 Set up the router in hash mode (`/` overview, `/recipes/:id` detail) in `src/router.ts`, use it in `main.ts` and `App.vue` (`<RouterView>`), and remove the scaffold `HelloWorld` component and its test expectations; tests mount with a memory-history router
+- [x] 4.1 Add the dependency with `npm install vue-router --prefix frontend`; add the `/api` proxy to `http://localhost:8000` in `frontend/vite.config.ts` (D2)
+- [x] 4.2 Test, then code, for the API module `src/api/recipes.ts`: typed `fetchRecipes()` and `fetchRecipe(id)` with relative URLs, `NotFoundError` on `404`, `BackendUnavailableError` on network errors and `5xx` (D6); `fetch` is stubbed with `vi.stubGlobal`
+- [x] 4.3 Test, then code, for `toLines(text)`: splits on `\n` and `\r\n`, trims, drops empty and whitespace-only lines, returns `[]` for `null` (D5)
+- [x] 4.4 Set up the router in hash mode (`/` overview, `/recipes/:id` detail) in `src/router.ts`, use it in `main.ts` and `App.vue` (`<RouterView>`), and remove the scaffold `HelloWorld` component and its test expectations; tests mount with a memory-history router
 
 ## 5. Overview
 
