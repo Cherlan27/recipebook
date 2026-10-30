@@ -27,10 +27,10 @@ Tests use `TestClient` with `get_db` overridden by a session on a temporary migr
 
 ## 5. Overview
 
-- [ ] 5.1 Test, then code, for scenario *Overview shows recipes sorted by number*: `src/views/RecipeListView.vue`, empty fields hidden
-- [ ] 5.2 Test, then code, for scenario *Recipe is opened from the overview*: each entry links to `/recipes/<id>`
-- [ ] 5.3 Test, then code, for scenario *Empty-database hint*
-- [ ] 5.4 Test, then code, for scenario *Backend-unreachable hint on the overview*
+- [x] 5.1 Test, then code, for scenario *Overview shows recipes sorted by number*: `src/views/RecipeListView.vue`, empty fields hidden
+- [x] 5.2 Test, then code, for scenario *Recipe is opened from the overview*: each entry links to `/recipes/<id>`
+- [x] 5.3 Test, then code, for scenario *Empty-database hint*
+- [x] 5.4 Test, then code, for scenario *Backend-unreachable hint on the overview*
 
 ## 6. Detail view
 
