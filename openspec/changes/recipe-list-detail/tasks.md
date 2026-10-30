@@ -8,9 +8,9 @@
 
 Tests use `TestClient` with `get_db` overridden by a session on a temporary migrated database (D4); recipes are created through the models.
 
-- [ ] 2.1 Test, then code, for scenario *Empty database*: add `app/schemas/recipe.py` with `RecipeListItem`, `app/api/routes/recipes.py` with `GET /api/recipes`, and include the router in `app/main.py` before the static mount
-- [ ] 2.2 Test, then code, for scenario *List is sorted by number*
-- [ ] 2.3 Test, then code, for scenarios *List entries carry the overview fields* (tag names sorted) and *List entry of a recipe with only the required fields*
+- [x] 2.1 Test, then code, for scenario *Empty database*: add `app/schemas/recipe.py` with `RecipeListItem`, `app/api/routes/recipes.py` with `GET /api/recipes`, and include the router in `app/main.py` before the static mount
+- [x] 2.2 Test, then code, for scenario *List is sorted by number*
+- [x] 2.3 Test, then code, for scenarios *List entries carry the overview fields* (tag names sorted) and *List entry of a recipe with only the required fields*
 
 ## 3. Recipe detail endpoint
 
