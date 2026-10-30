@@ -16,3 +16,5 @@
 - 2026-10-30 phase 4 fixes start (HEAD 5ee03e0): claude/sonnet
 - 2026-10-30 phase 4 fixes end: succeeded, HEAD e55b5ec; R1 + N1-N3 Status fixed; coordinator re-ran make check twice (65 backend, 31 frontend, openspec 5 ok); test integrity ok (tests only strengthened)
 - 2026-10-30 phase 5 archive & PR start (HEAD e55b5ec): claude/sonnet
+- 2026-10-30 phase 5 archive & PR end: succeeded, commit 783ba45, PR #17; coordinator verified archive, PR body, make check (65 backend, 31 frontend, openspec 6 ok)
+- 2026-10-30 Gate 3: waiting for human merge approval
