@@ -46,7 +46,7 @@ endif::arc42help[]
 
 [source]
 ----
-┌─────────────┐   HTTP/JSON (CORS)   ┌─────────────┐   SQLAlchemy (async)   ┌─────────────┐
+┌─────────────┐   HTTP/JSON (/api)   ┌─────────────┐   SQLAlchemy (async)   ┌─────────────┐
 │  Frontend   │ ───────────────────▶ │   Backend   │ ─────────────────────▶ │   SQLite    │
 │  (Vue 3)    │ ◀─────────────────── │  (FastAPI)  │ ◀───────────────────── │   app.db    │
 └─────────────┘                      └─────────────┘                       └─────────────┘
@@ -66,13 +66,13 @@ Contained Building Blocks::
 
 Important Interfaces::
 
-HTTP/JSON over a CORS-approved origin (`http://localhost:5173` in development). First available endpoint: `GET /health` → `200 OK`.
+HTTP/JSON with relative URLs. Recipe endpoints live under `/api` (`GET /api/recipes`, `GET /api/recipes/{id}`); `GET /health` keeps its path. In development the Vite dev server proxies `/api` to `http://localhost:8000`, so `/api` needs no CORS; the CORS rule for `http://localhost:5173` stays for `/health` (ADR-7). In the container, frontend and API share one origin.
 
 ==== Backend
 
 _Purpose/Responsibility_: Exposes the REST API, manages access to the SQLite database, sets CORS rules for the frontend.
 
-_Interface(s)_: HTTP/JSON, e.g. `GET /health`.
+_Interface(s)_: HTTP/JSON, e.g. `GET /health`, `GET /api/recipes`, `GET /api/recipes/{id}`.
 
 _Directory/File Location_: `backend/`
 
@@ -82,9 +82,21 @@ _(Optional) Open Issues/Problems/Risks_: Schema migrations run at startup and ca
 
 _Purpose/Responsibility_: Provides the user interface, consumes the backend API.
 
-_Interface(s)_: HTTP/JSON calls to the backend.
+_Interface(s)_: HTTP/JSON calls to the backend through relative `/api` URLs.
 
 _Directory/File Location_: `frontend/`
+
+Building blocks in `frontend/src` (ADR-9, no shared state, ADR-3):
+
+[cols="1,3", options="header"]
+|===
+| **Name** | **Responsibility**
+| `router.ts` | Vue Router in hash mode: `/` (overview) and `/recipes/:id` (detail)
+| `views/RecipeListView.vue` | Overview of all recipes, with the empty-database and backend-unreachable hints
+| `views/RecipeDetailView.vue` | One recipe with all filled fields, with the not-found and backend-unreachable hints
+| `api/recipes.ts` | Typed `fetchRecipes()` and `fetchRecipe(id)`; throws `NotFoundError` on `404` and `BackendUnavailableError` on network errors and `5xx`
+| `toLines` | Pure function that splits ingredients and steps text into non-empty lines
+|===
 
 === Level 2
 
@@ -95,7 +107,8 @@ The backend is internally layered to separate routing, configuration, database a
 [cols="1,3", options="header"]
 |===
 | **Name** | **Responsibility**
-| `app/api/routes` | HTTP endpoints (e.g. `health.py` for `GET /health`)
+| `app/api/routes` | HTTP endpoints (`health.py` for `GET /health`, `recipes.py` for the read-only `GET /api/recipes` and `GET /api/recipes/{id}`)
+| `app/schemas` | Pydantic response schemas (`RecipeListItem`, `RecipeDetail`); tags are returned as sorted names, so the API shape does not follow model changes by accident
 | `app/core` | Central configuration (e.g. CORS origin, DB path) via settings
 | `app/db` | SQLAlchemy engine/session management (async, `aiosqlite` driver, SQLite foreign-key enforcement on every connection), declarative base with a constraint naming convention, `init_db()` called from the FastAPI `lifespan`
 | `app/db/migrate.py` | Brings the database to the latest schema version at startup: detects pending migrations, writes the backup copy `app.db.bak-<revision>`, runs Alembic, and turns failures into a startup error (ADR-8)

@@ -1,8 +1,8 @@
 ## 1. Architecture decision and documentation
 
-- [ ] 1.1 Write `docs/adr/0009-vue-router-hash-mode.md` (Status / Context / Decision / Consequences) with status "Accepted": Vue Router in hash mode (D1), rejected history mode and no router, ADR-7 unchanged, ADR-3 still valid (D6)
-- [ ] 1.2 Update `docs/arc42/adoc/09_architecture_decisions.adoc` with an ADR-9 entry
-- [ ] 1.3 Update `docs/arc42/adoc/05_building_block_view.adoc`: interface `/api` (relative URLs, dev proxy instead of CORS for `/api`), `app/schemas` and the `recipes` router in the backend white box, frontend building blocks (router, views, `src/api`)
+- [x] 1.1 Write `docs/adr/0009-vue-router-hash-mode.md` (Status / Context / Decision / Consequences) with status "Accepted": Vue Router in hash mode (D1), rejected history mode and no router, ADR-7 unchanged, ADR-3 still valid (D6)
+- [x] 1.2 Update `docs/arc42/adoc/09_architecture_decisions.adoc` with an ADR-9 entry
+- [x] 1.3 Update `docs/arc42/adoc/05_building_block_view.adoc`: interface `/api` (relative URLs, dev proxy instead of CORS for `/api`), `app/schemas` and the `recipes` router in the backend white box, frontend building blocks (router, views, `src/api`)
 
 ## 2. Recipe list endpoint
 
