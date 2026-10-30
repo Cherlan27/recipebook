@@ -14,3 +14,5 @@
 - 2026-10-30 phase 3 review end: succeeded, review.md round 1 (commit 6b950b1); 0 critical, 0 major, 1 minor, 3 nits; only review.md changed
 - 2026-10-30 Gate 2: human decided fix for R1 and also fix for nits N1-N3 (no reason given); no second review round (no CRITICAL/MAJOR)
 - 2026-10-30 phase 4 fixes start (HEAD 5ee03e0): claude/sonnet
+- 2026-10-30 phase 4 fixes end: succeeded, HEAD e55b5ec; R1 + N1-N3 Status fixed; coordinator re-ran make check twice (65 backend, 31 frontend, openspec 5 ok); test integrity ok (tests only strengthened)
+- 2026-10-30 phase 5 archive & PR start (HEAD e55b5ec): claude/sonnet
