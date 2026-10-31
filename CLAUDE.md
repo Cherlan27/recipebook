@@ -43,6 +43,7 @@ Backend dependencies are managed with `uv` (`uv add <pkg>`, `uv add --dev <pkg>`
 - `app/db/migrations/` — Alembic environment (`env.py`) and revisions (`versions/`); create one with `cd backend && uv run alembic revision --autogenerate -m "..."`, review it, and commit it with the model change (a drift test fails otherwise). The migration connection deliberately has foreign keys off.
 - `app/db/base.py` — SQLAlchemy `DeclarativeBase` with the constraint naming convention
 - `app/models/` — SQLAlchemy models: `Recipe`, `KidFriendly`, `recipe_tags` (`recipe.py`) and `Tag` (`tag.py`); import new models in `app/models/__init__.py` so `Base.metadata` is complete
+- `app/schemas/` — Pydantic response schemas (`RecipeListItem`, `RecipeDetail`, in `recipe.py`); routes return these, never the ORM models
 - `app/main.py` — wires the FastAPI app, CORS middleware, and routers together
 
 Routes are added to `app/main.py` via `app.include_router(...)`; new endpoint modules go under `app/api/routes/`.

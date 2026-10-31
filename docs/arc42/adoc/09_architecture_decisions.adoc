@@ -107,3 +107,13 @@ endif::arc42help[]
 *Rationale*: One start path cannot drift between environments, and a broken migration makes the instance visibly unavailable instead of running on an outdated schema. Keeping migrations in the `app` package means the existing image layout already ships them. The copy gives the Pi a restore point exactly when the schema is about to change.
 
 *Consequence*: Backup copies accumulate (cleanup is out of scope); rollback means restoring the copy of the release being returned to, renaming it afterwards so the next deployment can write a fresh one, and starting the previous release. Full decision record at `docs/adr/0008-alembic-migrations-at-startup.md`.
+
+=== ADR-9: Vue Router in hash mode
+
+*Context*: Issue #8 adds the first two views (overview and recipe detail) and needs deep links and a working back button. The backend serves the static frontend at `/` after all routers (ADR-7).
+
+*Decision*: Vue Router in hash mode, with the routes `/` and `/recipes/:id` (addresses like `/#/recipes/5`, using the recipe `id`).
+
+*Rationale*: The server only ever sees `/`, so deep links and reloads work with the existing static mount; ADR-7 stays unchanged. History mode was rejected because it needs an SPA fallback route that must not shadow `/api`. No router was rejected because it gives no deep links and no back button.
+
+*Consequence*: Hash URLs look less clean. ADR-3 stays valid because the router holds no shared state. Switching to history mode later means a backend fallback route and one line in `src/router.ts`. Full decision record at `docs/adr/0009-vue-router-hash-mode.md`.
